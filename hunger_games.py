@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import random
+import json
 import time
 
 class Tribute:
@@ -264,22 +265,20 @@ class GameMaker():
             pass
 
 if __name__ == '__main__':
-    tributes = [
-        Tribute(name='Katniss Everdeen', district=12, rank=12, trait='Archery'),
-        Tribute(name='Peeta Mellark', district=12, rank=6, trait='Baker'),
-        Tribute(name='Gale Hawthorne', district=12, rank=2, trait='Hunter'),
-        Tribute(name='Haymitch Abernathy', district=12, rank=1, trait='Mentor'),
-        Tribute(name='Effie Trinket', district=12, rank=3, trait='Stylist'),
-        Tribute(name='Cinna', district=12, rank=4, trait='Designer'),
-        Tribute(name='Prim Everdeen', district=12, rank=5, trait='Healer'),
-        Tribute(name='Finnick Odair', district=4, rank=8, trait='Fisherman'),
-        Tribute(name='Johanna Mason', district=7, rank=9, trait='Lumberjack'),
-        Tribute(name='Clove', district=2, rank=10, trait='Knife Thrower'),
-        Tribute(name='Cato', district=2, rank=11, trait='Warrior'),
-        Tribute(name='Rue', district=11, rank=7, trait='Tracker'),
-        Tribute(name='Thresh', district=11, rank=13, trait='Strongman'),
-        Tribute(name='Foxface', district=5, rank=14, trait='Stealthy'),
-        Tribute(name='Marvel', district=1, rank=15, trait='Spearman'),
-    ]
+    with open('tributes.json', encoding='utf-8') as f_in:
+        tributes_data = json.load(f_in)
+
+    if not isinstance(tributes_data, list):
+        raise ValueError('tributes.json must contain a list of objects')
+    
+    tributes: list[Tribute] = []
+    for d in tributes_data:
+        tributes += [Tribute(
+            name=d['name'],
+            district=d['district'],
+            rank= d['rank'],
+            trait=d.get('trait'), # if not given, set to None
+        )]
+
     game = GameMaker(tributes)
     game.run_game()
