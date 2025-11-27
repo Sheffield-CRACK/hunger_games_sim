@@ -8,7 +8,7 @@ class Tribute:
     name: str
     district: int
     rank: int
-    trait: str
+    trait: list[str]
     enemies: list[Tribute]
     allies: list[Tribute]
     hunger: float
@@ -17,10 +17,10 @@ class Tribute:
 
     def __init__(
         self,
-        name: str,
+        name: str, 
         district: int,
         rank: int,
-        trait: str,
+        trait: list[str] = None,
         enemies: list[Tribute] = [],
         allies: list[Tribute] = [],
         hunger: int = 12,
@@ -30,7 +30,30 @@ class Tribute:
         self.name = name
         self.district = district
         self.rank = rank
-        self.trait = trait
+        # Available non-career traits
+        available_traits = ['Strong', 'Hunter', 'Sneaky', 'Ranged Fighter', 'Strategic', 'Intelligent', 'Popular', 'Healer', 'Tracker', 'Coward']
+
+        # Determine base traits from the provided argument (None -> random)
+        if trait is None:
+            traits = random.sample(available_traits, k=random.randint(1, 3))
+        elif isinstance(trait, str):
+            traits = [trait]
+        else:
+            traits = list(trait)
+
+        # If tribute is from districts 1, 2, or 4, ensure they have the 'Career' trait
+        if self.district in (1, 2, 4):
+            if 'Career' not in traits:
+                traits.insert(0, 'Career')
+
+        # Preserve order but ensure uniqueness
+        unique_traits: list[str] = []
+        for t in traits:
+            if t not in unique_traits:
+                unique_traits.append(t)
+
+        self.trait = unique_traits
+
         self.enemies = enemies
         self.allies = allies
         self.hunger = hunger
@@ -38,7 +61,8 @@ class Tribute:
         self._health = health
 
     def __str__(self) -> str:
-        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score})"
+        traits_str = ', '.join(self.trait)
+        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}) - Traits: {traits_str}"
 
     @property
     def health(self)-> float:
@@ -64,7 +88,15 @@ class Tribute:
     @property
     def fighting_score(self) -> float:
         """Calculate a fighting score."""
-        return self.rank + self.hunger + self.thirst + self.health
+        if 'Career' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 2
+        elif 'Strong' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
+        elif 'Ranged Fighter' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
+        else:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health
+        return fighting_score
 
     def progress_time(self):
         '''
@@ -89,7 +121,6 @@ class Tribute:
 class EventBase(ABC):
 
     tributes: list[Tribute]
-    num_participants: int = 1
 
     def __init__(self, tributes:list[Tribute]):
         self.tributes = tributes
@@ -99,8 +130,6 @@ class EventBase(ABC):
         ...
 
 class EventFight(EventBase):
-
-    num_participants = 2
 
     def execute(self):
         print('A fight is happening!')
@@ -145,39 +174,35 @@ class EventFight(EventBase):
 
 class EventMutts(EventBase):
 
-    num_participants = random.randint(1, 4)
-    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrels', 'wolf mutts', 'monkey mutts']
+    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrelu', 'wolf mutts', 'monkey mutts']
 
     def execute(self):
 
         mutt = random.choice(self.mutts_list)
-        print(f"{mutt.capitalize()} have been released in the arena!")
+        print(f"{mutt} have been released in the arena!")
 
-        tributes = random.sample(self.tributes, k=self.num_participants)
-        for tribute in tributes:
-            d6 = random.randint(1,6)
+        tribute: Tribute = random.choice(self.tributes)
+        d6 = random.randint(1,6)
 
-            if d6 in [1]:
-                # killed outright
-                print(f"{tribute.name} was killed by the {mutt}!")
-                tribute.kill()
-            if d6 in [2,3]:
-                # severe injury
-                tribute.adjust_health(-5)
-                print(f"{tribute.name} was severely wounded by the {mutt}!")
-            if d6 in [4,5]:
-                # wounded!
-                tribute.adjust_health(-3)
-                print(f"{tribute.name} was slightly wounded by the {mutt}!")
-            if d6 in [6]:
-                # escaped!
-                tribute.adjust_health(-1)
-                print(f"{tribute.name} escaped the {mutt}!")
+        if d6 in [1]:
+            # killed outright
+            print(f"{tribute.name} was killed by the {mutt}!")
+            tribute.kill()
+        if d6 in [2,3]:
+            # severe injury
+            tribute.adjust_health(-5)
+            print(f"{tribute.name} was severely wounded by the {mutt}!")
+        if d6 in [4,5]:
+            # wounded!
+            tribute.adjust_health(-3)
+            print(f"{tribute.name} was slightly wounded by the {mutt}!")
+        if d6 in [6]:
+            # escaped!
+            tribute.adjust_health(-3)
+            print(f"{tribute.name} escaped the {mutt}!")
 
 
 class EventFood(EventBase):
-
-    num_participants = 1
 
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
@@ -187,13 +212,10 @@ class EventFood(EventBase):
 
 class EventDrink(EventBase):
 
-    num_participants = 1
-
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
         print(f'{tribute[0].name} found some water!')
         tribute[0].thirst += 2
-
 
 class GameMaker():
 
@@ -229,26 +251,11 @@ class GameMaker():
         for tribute in self.living_tributes:
             print(tribute)
 
-        remaining_tributes = self.living_tributes.copy()
-        while len(remaining_tributes) > 0:
-            print('~~~~~~~~~~~~~~~')
-            # randomly select an event type
-            event = random.choice(self.events)
+        # randomly select an event type
+        event: type[EventBase] = random.choice(self.events)
 
-            # check if enough tributes remain for this event
-            if len(remaining_tributes) < event.num_participants:
-                continue
-
-            # select tributes for this event
-            selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
-
-            # execute the event
-            event(selected_tributes).execute()
-
-            # remove selected tributes from remaining tributes
-            for tribute in selected_tributes:
-                remaining_tributes.remove(tribute)
-        print('~~~~~~~~~~~~~~~')
+        # select participating tributes
+        event(self.living_tributes).execute()
 
         if len(self.living_tributes) == 1:
             print('Game Over')
@@ -270,21 +277,21 @@ class GameMaker():
 
 if __name__ == '__main__':
     tributes = [
-        Tribute(name='Katniss Everdeen', district=12, rank=12, trait='Archery'),
-        Tribute(name='Peeta Mellark', district=12, rank=6, trait='Baker'),
-        Tribute(name='Gale Hawthorne', district=12, rank=2, trait='Hunter'),
-        Tribute(name='Haymitch Abernathy', district=12, rank=1, trait='Mentor'),
-        Tribute(name='Effie Trinket', district=12, rank=3, trait='Stylist'),
-        Tribute(name='Cinna', district=12, rank=4, trait='Designer'),
-        Tribute(name='Prim Everdeen', district=12, rank=5, trait='Healer'),
-        Tribute(name='Finnick Odair', district=4, rank=8, trait='Fisherman'),
-        Tribute(name='Johanna Mason', district=7, rank=9, trait='Lumberjack'),
-        Tribute(name='Clove', district=2, rank=10, trait='Knife Thrower'),
-        Tribute(name='Cato', district=2, rank=11, trait='Warrior'),
-        Tribute(name='Rue', district=11, rank=7, trait='Tracker'),
-        Tribute(name='Thresh', district=11, rank=13, trait='Strongman'),
-        Tribute(name='Foxface', district=5, rank=14, trait='Stealthy'),
-        Tribute(name='Marvel', district=1, rank=15, trait='Spearman'),
+        Tribute(name='Katniss Everdeen', district=12, rank=12),
+        Tribute(name='Peeta Mellark', district=12, rank=6),
+        Tribute(name='Gale Hawthorne', district=12, rank=2),
+        Tribute(name='Haymitch Abernathy', district=12, rank=1),
+        Tribute(name='Effie Trinket', district=12, rank=3),
+        Tribute(name='Cinna', district=12, rank=4),
+        Tribute(name='Prim Everdeen', district=12, rank=5),
+        Tribute(name='Finnick Odair', district=4, rank=8),
+        Tribute(name='Johanna Mason', district=7, rank=9),
+        Tribute(name='Clove', district=2, rank=10),
+        Tribute(name='Cato', district=2, rank=11),
+        Tribute(name='Rue', district=11, rank=7),
+        Tribute(name='Thresh', district=11, rank=13),
+        Tribute(name='Foxface', district=5, rank=14),
+        Tribute(name='Marvel', district=1, rank=15),
     ]
     game = GameMaker(tributes)
     game.run_game()
