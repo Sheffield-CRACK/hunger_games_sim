@@ -8,7 +8,7 @@ class Tribute:
     name: str
     district: int
     rank: int
-    trait: str
+    trait: list[str]
     enemies: list[Tribute]
     allies: list[Tribute]
     hunger: float
@@ -18,10 +18,10 @@ class Tribute:
 
     def __init__(
         self,
-        name: str,
+        name: str, 
         district: int,
         rank: int,
-        trait: str,
+        trait: list[str] = None,
         enemies: list[Tribute] = [],
         allies: list[Tribute] = [],
         hunger: int = 12,
@@ -32,7 +32,30 @@ class Tribute:
         self.name = name
         self.district = district
         self.rank = rank
-        self.trait = trait
+        # Available non-career traits
+        available_traits = ['Strong', 'Hunter', 'Sneaky', 'Ranged Fighter', 'Strategic', 'Intelligent', 'Popular', 'Healer', 'Tracker', 'Coward']
+
+        # Determine base traits from the provided argument (None -> random)
+        if trait is None:
+            traits = random.sample(available_traits, k=random.randint(1, 3))
+        elif isinstance(trait, str):
+            traits = [trait]
+        else:
+            traits = list(trait)
+
+        # If tribute is from districts 1, 2, or 4, ensure they have the 'Career' trait
+        if self.district in (1, 2, 4):
+            if 'Career' not in traits:
+                traits.insert(0, 'Career')
+
+        # Preserve order but ensure uniqueness
+        unique_traits: list[str] = []
+        for t in traits:
+            if t not in unique_traits:
+                unique_traits.append(t)
+
+        self.trait = unique_traits
+
         self.enemies = enemies
         self.allies = allies
         self.hunger = hunger
@@ -41,7 +64,9 @@ class Tribute:
         self.coords = [0,0] if coords is None else coords
 
     def __str__(self) -> str:
-        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}, {self.coords})"
+        traits_str = ', '.join(self.trait)
+        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}), {self.coords} - Traits: {traits_str}"
+
 
     @property
     def health(self)-> float:
@@ -67,7 +92,15 @@ class Tribute:
     @property
     def fighting_score(self) -> float:
         """Calculate a fighting score."""
-        return self.rank + self.hunger + self.thirst + self.health
+        if 'Career' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 2
+        elif 'Strong' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
+        elif 'Ranged Fighter' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
+        else:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health
+        return fighting_score
 
     def progress_time(self) -> bool:
         '''
@@ -105,7 +138,6 @@ class Tribute:
 class EventBase(ABC):
 
     tributes: list[Tribute]
-    num_participants: int = 1
 
     def __init__(self, tributes:list[Tribute]):
         self.tributes = tributes
@@ -115,8 +147,6 @@ class EventBase(ABC):
         ...
 
 class EventFight(EventBase):
-
-    num_participants = 2
 
     def execute(self):
         print('A fight is happening!')
@@ -197,8 +227,6 @@ class EventMutts(EventBase):
 
 class EventFood(EventBase):
 
-    num_participants = 1
-
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
         print(f'{tribute[0].name} found some food!')
@@ -207,13 +235,10 @@ class EventFood(EventBase):
 
 class EventDrink(EventBase):
 
-    num_participants = 1
-
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
         print(f'{tribute[0].name} found some water!')
         tribute[0].thirst += 2
-
 
 class GameMaker():
 
@@ -322,21 +347,21 @@ class GameMaker():
 
 if __name__ == '__main__':
     tributes = [
-        Tribute(name='Katniss Everdeen', district=12, rank=12, trait='Archery'),
-        Tribute(name='Peeta Mellark', district=12, rank=6, trait='Baker'),
-        Tribute(name='Gale Hawthorne', district=12, rank=2, trait='Hunter'),
-        Tribute(name='Haymitch Abernathy', district=12, rank=1, trait='Mentor'),
-        Tribute(name='Effie Trinket', district=12, rank=3, trait='Stylist'),
-        Tribute(name='Cinna', district=12, rank=4, trait='Designer'),
-        Tribute(name='Prim Everdeen', district=12, rank=5, trait='Healer'),
-        Tribute(name='Finnick Odair', district=4, rank=8, trait='Fisherman'),
-        Tribute(name='Johanna Mason', district=7, rank=9, trait='Lumberjack'),
-        Tribute(name='Clove', district=2, rank=10, trait='Knife Thrower'),
-        Tribute(name='Cato', district=2, rank=11, trait='Warrior'),
-        Tribute(name='Rue', district=11, rank=7, trait='Tracker'),
-        Tribute(name='Thresh', district=11, rank=13, trait='Strongman'),
-        Tribute(name='Foxface', district=5, rank=14, trait='Stealthy'),
-        Tribute(name='Marvel', district=1, rank=15, trait='Spearman'),
+        Tribute(name='Katniss Everdeen', district=12, rank=12),
+        Tribute(name='Peeta Mellark', district=12, rank=6),
+        Tribute(name='Gale Hawthorne', district=12, rank=2),
+        Tribute(name='Haymitch Abernathy', district=12, rank=1),
+        Tribute(name='Effie Trinket', district=12, rank=3),
+        Tribute(name='Cinna', district=12, rank=4),
+        Tribute(name='Prim Everdeen', district=12, rank=5),
+        Tribute(name='Finnick Odair', district=4, rank=8),
+        Tribute(name='Johanna Mason', district=7, rank=9),
+        Tribute(name='Clove', district=2, rank=10),
+        Tribute(name='Cato', district=2, rank=11),
+        Tribute(name='Rue', district=11, rank=7),
+        Tribute(name='Thresh', district=11, rank=13),
+        Tribute(name='Foxface', district=5, rank=14),
+        Tribute(name='Marvel', district=1, rank=15),
     ]
     game = GameMaker(tributes)
     game.run_game()
