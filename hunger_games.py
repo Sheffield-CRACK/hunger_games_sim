@@ -10,7 +10,7 @@ class Tribute:
     name: str
     district: int
     rank: int
-    trait: str
+    trait: list[str]
     enemies: list[Tribute]
     allies: list[Tribute]
     hunger: float
@@ -20,10 +20,10 @@ class Tribute:
 
     def __init__(
         self,
-        name: str,
+        name: str, 
         district: int,
         rank: int,
-        trait: str,
+        trait: list[str] = None,
         enemies: list[Tribute] = [],
         allies: list[Tribute] = [],
         hunger: int = 12,
@@ -34,7 +34,30 @@ class Tribute:
         self.name = name
         self.district = district
         self.rank = rank
-        self.trait = trait
+        # Available non-career traits
+        available_traits = ['Strong', 'Hunter', 'Sneaky', 'Ranged Fighter', 'Strategic', 'Intelligent', 'Popular', 'Healer', 'Tracker', 'Coward']
+
+        # Determine base traits from the provided argument (None -> random)
+        if trait is None:
+            traits = random.sample(available_traits, k=random.randint(1, 3))
+        elif isinstance(trait, str):
+            traits = [trait]
+        else:
+            traits = list(trait)
+
+        # If tribute is from districts 1, 2, or 4, ensure they have the 'Career' trait
+        if self.district in (1, 2, 4):
+            if 'Career' not in traits:
+                traits.insert(0, 'Career')
+
+        # Preserve order but ensure uniqueness
+        unique_traits: list[str] = []
+        for t in traits:
+            if t not in unique_traits:
+                unique_traits.append(t)
+
+        self.trait = unique_traits
+
         self.enemies = enemies
         self.allies = allies
         self.hunger = hunger
@@ -43,7 +66,9 @@ class Tribute:
         self.coords = [0,0] if coords is None else coords
 
     def __str__(self) -> str:
-        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}, {self.coords})"
+        traits_str = ', '.join(self.trait)
+        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}), {self.coords} - Traits: {traits_str}"
+
 
     @property
     def health(self)-> float:
@@ -69,7 +94,15 @@ class Tribute:
     @property
     def fighting_score(self) -> float:
         """Calculate a fighting score."""
-        return self.rank + self.hunger + self.thirst + self.health
+        if 'Career' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 2
+        elif 'Strong' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
+        elif 'Ranged Fighter' in self.trait:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
+        else:
+            fighting_score = self.rank + self.hunger + self.thirst + self.health
+        return fighting_score
 
     def progress_time(self) -> bool:
         '''
@@ -109,7 +142,6 @@ class Tribute:
 class EventBase(ABC):
 
     tributes: list[Tribute]
-    num_participants: int = 1
 
     def __init__(self, tributes:list[Tribute]):
         self.tributes = tributes
@@ -119,8 +151,6 @@ class EventBase(ABC):
         ...
 
 class EventFight(EventBase):
-
-    num_participants = 2
 
     def execute(self):
         print('A fight is happening!')
@@ -201,8 +231,6 @@ class EventMutts(EventBase):
 
 class EventFood(EventBase):
 
-    num_participants = 1
-
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
         print(f'{tribute[0].name} found some food!')
@@ -211,13 +239,10 @@ class EventFood(EventBase):
 
 class EventDrink(EventBase):
 
-    num_participants = 1
-
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
         print(f'{tribute[0].name} found some water!')
         tribute[0].thirst += 2
-
 
 class GameMaker():
 
