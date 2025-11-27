@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import random
+import json
+import time
 from abc import ABC, abstractmethod
 
 
@@ -105,6 +107,8 @@ class Tribute:
     def progress_time(self) -> bool:
         '''
         This function deals with the effects of time progressing
+
+        Returns a bool indicating if the tribute is alive.
         '''
         # do nothing if tribute is already dead
         if self.is_dead:
@@ -273,10 +277,26 @@ class GameMaker():
         # copy who's current alive
         currently_alive = self.living_tributes.copy()
 
+        # shuffle the tributes
+        random.shuffle(self.tributes)
+
         # progress time for each tribute
         print('Progressing time...')
+        number_alive = len(self.living_tributes)
         for tribute in self.tributes:
-            tribute.progress_time()
+            # if everyone else dies mid-turn, end the game
+            if number_alive == 1:
+                self.game_over()
+                return False
+            
+            # skip dead people
+            if tribute.is_dead:
+                continue
+            
+            stays_alive = tribute.progress_time()
+            if not stays_alive:
+                number_alive -= 1
+        
         self.print_tributes()
 
         # execute events
@@ -308,10 +328,7 @@ class GameMaker():
 
         # Check for game over
         if len(self.living_tributes) == 1:
-            print('Game Over')
-            print(f'Winner: {self.living_tributes[0].name} :D')
-            for tribute, day in self.dead_tributes:
-                print(f'{tribute.name} died on day {day}')
+            self.game_over()
             return False
 
         # Print current living tributes
@@ -335,6 +352,12 @@ class GameMaker():
         input('Continue? :')
 
         return True
+    
+    def game_over(self):
+        print('Game Over')
+        print(f'Winner: {self.living_tributes[0].name} :D')
+        for tribute, day in self.dead_tributes:
+                print(f'{tribute.name} died on day {day}')
 
     def run_game(self):
         print('Starting Hunger Games Simulation!')
@@ -346,22 +369,20 @@ class GameMaker():
             pass
 
 if __name__ == '__main__':
-    tributes = [
-        Tribute(name='Katniss Everdeen', district=12, rank=12),
-        Tribute(name='Peeta Mellark', district=12, rank=6),
-        Tribute(name='Gale Hawthorne', district=12, rank=2),
-        Tribute(name='Haymitch Abernathy', district=12, rank=1),
-        Tribute(name='Effie Trinket', district=12, rank=3),
-        Tribute(name='Cinna', district=12, rank=4),
-        Tribute(name='Prim Everdeen', district=12, rank=5),
-        Tribute(name='Finnick Odair', district=4, rank=8),
-        Tribute(name='Johanna Mason', district=7, rank=9),
-        Tribute(name='Clove', district=2, rank=10),
-        Tribute(name='Cato', district=2, rank=11),
-        Tribute(name='Rue', district=11, rank=7),
-        Tribute(name='Thresh', district=11, rank=13),
-        Tribute(name='Foxface', district=5, rank=14),
-        Tribute(name='Marvel', district=1, rank=15),
-    ]
+    with open('tributes.json', encoding='utf-8') as f_in:
+        tributes_data = json.load(f_in)
+
+    if not isinstance(tributes_data, list):
+        raise ValueError('tributes.json must contain a list of objects')
+    
+    tributes: list[Tribute] = []
+    for d in tributes_data:
+        tributes += [Tribute(
+            name=d['name'],
+            district=d['district'],
+            rank= d['rank'],
+            trait=d.get('trait'), # if not given, set to None
+        )]
+
     game = GameMaker(tributes)
     game.run_game()
