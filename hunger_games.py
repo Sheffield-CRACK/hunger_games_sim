@@ -209,20 +209,24 @@ class GameMaker():
             EventDrink,
         ]
         self.day = 0
+        self.dead_tributes: list[tuple[Tribute, int]] = []
 
     @property
     def living_tributes(self) -> list[Tribute]:
         return [tribute for tribute in self.tributes if not tribute.is_dead]
 
     def print_tributes(self):
-        print(f'{len(self.tributes)} tributes in the game:')
-        for tribute in self.tributes:
+        print(f'{len(self.living_tributes)}/{len(self.tributes)} tributes in the game:')
+        for tribute in self.living_tributes:
             print(tribute)
 
     def progress_time(self) -> bool:
         self.day += 1
         print(f'Day {self.day}')
         print('~~~~~~~~~~~~~~~')
+
+        # copy who's current alive
+        currently_alive = self.living_tributes.copy()
 
         # progress time for each tribute
         print('Progressing time...')
@@ -257,11 +261,26 @@ class GameMaker():
         if len(self.living_tributes) == 1:
             print('Game Over')
             print(f'Winner: {self.living_tributes[0].name} :D')
+            for tribute, day in self.dead_tributes:
+                print(f'{tribute.name} died on day {day}')
             return False
 
         # Print current living tributes
         self.print_tributes()
 
+        # Find who died this round
+        died_today = [
+            tribute
+            for tribute in currently_alive
+            if tribute.is_dead
+        ]
+        if len(died_today) == 0:
+            print('Everyone survived today!')
+        else:
+            print(f'{len(died_today)} tributes died today:')
+            for tribute in died_today:
+                self.dead_tributes.append((tribute, self.day))
+                print(f'{tribute.name} is dead!')
         # Wait for user to continue
         print('~~~~~~~~~~~~~~~')
         input('Continue? :')
