@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import random
-import time
+from abc import ABC, abstractmethod
+
 
 class Tribute:
     name: str
