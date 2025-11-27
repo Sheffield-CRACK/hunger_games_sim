@@ -20,7 +20,7 @@ class Tribute:
 
     def __init__(
         self,
-        name: str, 
+        name: str,
         district: int,
         rank: int,
         trait: list[str] = None,
@@ -142,6 +142,7 @@ class Tribute:
 class EventBase(ABC):
 
     tributes: list[Tribute]
+    num_participants: int = 1
 
     def __init__(self, tributes:list[Tribute]):
         self.tributes = tributes
@@ -152,9 +153,10 @@ class EventBase(ABC):
 
 class EventFight(EventBase):
 
+    num_participants = 2
     def execute(self):
         print('A fight is happening!')
-        players = random.sample(self.tributes, k=2)
+        players = random.sample(self.tributes, k=self.num_participants)
 
         print('Fighting between:')
         for player in players:
@@ -165,7 +167,7 @@ class EventFight(EventBase):
             print('It was a draw!')
             players[0].adjust_health(-1)
             players[1].adjust_health(-1)
-            return
+            return players
         sorted_players = sorted(players, key=lambda x: x.fighting_score, reverse=True)
         stronger, weaker = sorted_players[0], sorted_players[1]
 
@@ -192,6 +194,8 @@ class EventFight(EventBase):
             print(f'{loser.name} managed to escape from {winner.name}!')
             loser.adjust_health(-1)
 
+        return players
+
 
 class EventMutts(EventBase):
 
@@ -205,8 +209,7 @@ class EventMutts(EventBase):
         print(f"{mutt.capitalize()} have been released into area {mutt_zone}!")
 
         tributes = [tribute for tribute in self.tributes if tribute.coords == mutt_zone]
-        num_victims = len(tributes)
-        if num_victims == 0:
+        if len(tributes) == 0:
             print('But nobody is there womp womp')
         for tribute in tributes:
             d6 = random.randint(1,6)
@@ -227,22 +230,29 @@ class EventMutts(EventBase):
                 # escaped!
                 tribute.adjust_health(-1)
                 print(f"{tribute.name} escaped the {mutt}!")
+        return tributes
 
 
 class EventFood(EventBase):
 
+    num_participants = 1
+
     def execute(self):
-        tribute = random.sample(self.tributes, k=1)
+        tribute = random.sample(self.tributes, k=self.num_participants)
         print(f'{tribute[0].name} found some food!')
         tribute[0].hunger += 2
+        return tribute
 
 
 class EventDrink(EventBase):
 
+    num_participants = 1
+
     def execute(self):
-        tribute = random.sample(self.tributes, k=1)
+        tribute = random.sample(self.tributes, k=self.num_participants)
         print(f'{tribute[0].name} found some water!')
         tribute[0].thirst += 2
+        return tribute
 
 class GameMaker():
 
@@ -288,28 +298,27 @@ class GameMaker():
             if number_alive == 1:
                 self.game_over()
                 return False
-            
+
             # skip dead people
             if tribute.is_dead:
                 continue
-            
+
             stays_alive = tribute.progress_time()
             if not stays_alive:
                 number_alive -= 1
-        
+
         self.print_tributes()
 
         # execute events
         remaining_tributes = self.living_tributes.copy()
         while len(remaining_tributes) > 0:
+            print('~~~~~~~~~~~~~~~')
             # randomly select an event type
             event = random.choice(self.events)
 
             # check if enough tributes remain for this event
             if len(remaining_tributes) < event.num_participants:
                 continue
-
-            print('~~~~~~~~~~~~~~~')
 
             # select tributes for this event
             if event.num_participants == -1:
@@ -319,17 +328,13 @@ class GameMaker():
                 selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
             # execute the event
-            event(selected_tributes).execute()
+            affected_tributes = event(selected_tributes).execute()
 
             # remove selected tributes from remaining tributes
-            for tribute in selected_tributes:
+            for tribute in affected_tributes:
                 remaining_tributes.remove(tribute)
-        print('~~~~~~~~~~~~~~~')
 
-        # Check for game over
-        if len(self.living_tributes) == 1:
-            self.game_over()
-            return False
+        print('~~~~~~~~~~~~~~~')
 
         # Print current living tributes
         self.print_tributes()
@@ -347,12 +352,18 @@ class GameMaker():
             for tribute in died_today:
                 self.dead_tributes.append((tribute, self.day))
                 print(f'{tribute.name} is dead!')
+
+        # Check for game over
+        if len(self.living_tributes) == 1:
+            self.game_over()
+            return False
+
         # Wait for user to continue
         print('~~~~~~~~~~~~~~~')
         input('Continue? :')
 
         return True
-    
+
     def game_over(self):
         print('Game Over')
         print(f'Winner: {self.living_tributes[0].name} :D')
@@ -374,7 +385,7 @@ if __name__ == '__main__':
 
     if not isinstance(tributes_data, list):
         raise ValueError('tributes.json must contain a list of objects')
-    
+
     tributes: list[Tribute] = []
     for d in tributes_data:
         tributes += [Tribute(
