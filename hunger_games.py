@@ -16,6 +16,7 @@ class Tribute:
     hunger: float
     thirst: float
     _health: float
+    coords: list[int]
 
     def __init__(
         self,
@@ -28,6 +29,7 @@ class Tribute:
         hunger: int = 12,
         thirst: int = 12,
         health: int = 12,
+        coords: list[int]|None = None,
     ):
         self.name = name
         self.district = district
@@ -38,9 +40,10 @@ class Tribute:
         self.hunger = hunger
         self.thirst = thirst
         self._health = health
+        self.coords = [0,0] if coords is None else coords
 
     def __str__(self) -> str:
-        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score})"
+        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}, {self.coords})"
 
     @property
     def health(self)-> float:
@@ -85,11 +88,23 @@ class Tribute:
         if self.hunger <= 0:
             self.adjust_health(self.hunger - 1)
 
-        # if thiradjust_st goelow 0, the tribute dies
+        # if thirst goes below 0, the tribute dies
         if self.thirst < 0:
             self.kill()
 
+        # randomly move to new coords
+        if random.random() < 0.5:
+            for i in range(2):
+                # limit of 2 assumes 5x5 grid
+                if self.coords[i] == 2:
+                    self.coords[i] += random.randint(-1,0)
+                elif self.coords[i] == -2:
+                    self.coords[i] += random.randint(0,1)
+                else:
+                    self.coords[i] += random.randint(-1,1)
+
         return self.is_alive
+
 
 class EventBase(ABC):
 
@@ -150,15 +165,19 @@ class EventFight(EventBase):
 
 class EventMutts(EventBase):
 
-    num_participants = random.randint(1, 4)
-    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrels', 'wolf mutts', 'monkey mutts']
+    num_participants = -1
+    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrels', 'wolf mutts', 'monkey mutts', 'feral undergrads']
 
     def execute(self):
 
         mutt = random.choice(self.mutts_list)
-        print(f"{mutt.capitalize()} have been released in the arena!")
+        mutt_zone = [random.randint(-2,2), random.randint(-2,2)]
+        print(f"{mutt.capitalize()} have been released into area {mutt_zone}!")
 
-        tributes = random.sample(self.tributes, k=self.num_participants)
+        tributes = [tribute for tribute in self.tributes if tribute.coords == mutt_zone]
+        num_victims = len(tributes)
+        if num_victims == 0:
+            print('But nobody is there womp womp')
         for tribute in tributes:
             d6 = random.randint(1,6)
 
@@ -268,7 +287,11 @@ class GameMaker():
             print('~~~~~~~~~~~~~~~')
 
             # select tributes for this event
-            selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
+            if event.num_participants == -1:
+                # all remaining tributes participate
+                selected_tributes = remaining_tributes.copy()
+            else:
+                selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
             # execute the event
             event(selected_tributes).execute()
