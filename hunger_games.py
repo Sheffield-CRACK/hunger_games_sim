@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import random
-import time
+from abc import ABC, abstractmethod
+
 
 class Tribute:
     name: str
@@ -14,6 +14,7 @@ class Tribute:
     hunger: float
     thirst: float
     _health: float
+    coords: list[int]
 
     def __init__(
         self,
@@ -26,6 +27,7 @@ class Tribute:
         hunger: int = 12,
         thirst: int = 12,
         health: int = 12,
+        coords: list[int]|None = None,
     ):
         self.name = name
         self.district = district
@@ -59,10 +61,12 @@ class Tribute:
         self.hunger = hunger
         self.thirst = thirst
         self._health = health
+        self.coords = [0,0] if coords is None else coords
 
     def __str__(self) -> str:
         traits_str = ', '.join(self.trait)
-        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}) - Traits: {traits_str}"
+        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}), {self.coords} - Traits: {traits_str}"
+
 
     @property
     def health(self)-> float:
@@ -98,13 +102,13 @@ class Tribute:
             fighting_score = self.rank + self.hunger + self.thirst + self.health
         return fighting_score
 
-    def progress_time(self):
+    def progress_time(self) -> bool:
         '''
         This function deals with the effects of time progressing
         '''
         # do nothing if tribute is already dead
         if self.is_dead:
-            return
+            return False
 
         self.hunger -= 1
         self.thirst -= 1
@@ -113,9 +117,22 @@ class Tribute:
         if self.hunger <= 0:
             self.adjust_health(self.hunger - 1)
 
-        # if thiradjust_st goelow 0, the tribute dies
+        # if thirst goes below 0, the tribute dies
         if self.thirst < 0:
             self.kill()
+
+        # randomly move to new coords
+        if random.random() < 0.5:
+            for i in range(2):
+                # limit of 2 assumes 5x5 grid
+                if self.coords[i] == 2:
+                    self.coords[i] += random.randint(-1,0)
+                elif self.coords[i] == -2:
+                    self.coords[i] += random.randint(0,1)
+                else:
+                    self.coords[i] += random.randint(-1,1)
+
+        return self.is_alive
 
 
 class EventBase(ABC):
@@ -174,32 +191,38 @@ class EventFight(EventBase):
 
 class EventMutts(EventBase):
 
-    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrelu', 'wolf mutts', 'monkey mutts']
+    num_participants = -1
+    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrels', 'wolf mutts', 'monkey mutts', 'feral undergrads']
 
     def execute(self):
 
         mutt = random.choice(self.mutts_list)
-        print(f"{mutt} have been released in the arena!")
+        mutt_zone = [random.randint(-2,2), random.randint(-2,2)]
+        print(f"{mutt.capitalize()} have been released into area {mutt_zone}!")
 
-        tribute: Tribute = random.choice(self.tributes)
-        d6 = random.randint(1,6)
+        tributes = [tribute for tribute in self.tributes if tribute.coords == mutt_zone]
+        num_victims = len(tributes)
+        if num_victims == 0:
+            print('But nobody is there womp womp')
+        for tribute in tributes:
+            d6 = random.randint(1,6)
 
-        if d6 in [1]:
-            # killed outright
-            print(f"{tribute.name} was killed by the {mutt}!")
-            tribute.kill()
-        if d6 in [2,3]:
-            # severe injury
-            tribute.adjust_health(-5)
-            print(f"{tribute.name} was severely wounded by the {mutt}!")
-        if d6 in [4,5]:
-            # wounded!
-            tribute.adjust_health(-3)
-            print(f"{tribute.name} was slightly wounded by the {mutt}!")
-        if d6 in [6]:
-            # escaped!
-            tribute.adjust_health(-3)
-            print(f"{tribute.name} escaped the {mutt}!")
+            if d6 in [1]:
+                # killed outright
+                print(f"{tribute.name} was killed by the {mutt}!")
+                tribute.kill()
+            if d6 in [2,3]:
+                # severe injury
+                tribute.adjust_health(-5)
+                print(f"{tribute.name} was severely wounded by the {mutt}!")
+            if d6 in [4,5]:
+                # wounded!
+                tribute.adjust_health(-3)
+                print(f"{tribute.name} was slightly wounded by the {mutt}!")
+            if d6 in [6]:
+                # escaped!
+                tribute.adjust_health(-1)
+                print(f"{tribute.name} escaped the {mutt}!")
 
 
 class EventFood(EventBase):
@@ -231,47 +254,94 @@ class GameMaker():
             EventDrink,
         ]
         self.day = 0
+        self.dead_tributes: list[tuple[Tribute, int]] = []
 
     @property
     def living_tributes(self) -> list[Tribute]:
         return [tribute for tribute in self.tributes if not tribute.is_dead]
 
-
-    def progress_time(self) -> bool:
-        print('Progressing time...')
-        self.day += 1
-        print(f'Day {self.day}')
-
-        # progress time for each tribute
-        for tribute in self.tributes:
-            tribute.progress_time()
-
-        # print living tributes
-        print('Living tributes:')
+    def print_tributes(self):
+        print(f'{len(self.living_tributes)}/{len(self.tributes)} tributes in the game:')
         for tribute in self.living_tributes:
             print(tribute)
 
-        # randomly select an event type
-        event: type[EventBase] = random.choice(self.events)
+    def progress_time(self) -> bool:
+        self.day += 1
+        print(f'Day {self.day}')
+        print('~~~~~~~~~~~~~~~')
 
-        # select participating tributes
-        event(self.living_tributes).execute()
+        # copy who's current alive
+        currently_alive = self.living_tributes.copy()
 
+        # progress time for each tribute
+        print('Progressing time...')
+        for tribute in self.tributes:
+            tribute.progress_time()
+        self.print_tributes()
+
+        # execute events
+        remaining_tributes = self.living_tributes.copy()
+        while len(remaining_tributes) > 0:
+            # randomly select an event type
+            event = random.choice(self.events)
+
+            # check if enough tributes remain for this event
+            if len(remaining_tributes) < event.num_participants:
+                continue
+
+            print('~~~~~~~~~~~~~~~')
+
+            # select tributes for this event
+            if event.num_participants == -1:
+                # all remaining tributes participate
+                selected_tributes = remaining_tributes.copy()
+            else:
+                selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
+
+            # execute the event
+            event(selected_tributes).execute()
+
+            # remove selected tributes from remaining tributes
+            for tribute in selected_tributes:
+                remaining_tributes.remove(tribute)
+        print('~~~~~~~~~~~~~~~')
+
+        # Check for game over
         if len(self.living_tributes) == 1:
             print('Game Over')
             print(f'Winner: {self.living_tributes[0].name} :D')
+            for tribute, day in self.dead_tributes:
+                print(f'{tribute.name} died on day {day}')
             return False
 
-        print(f'{len(self.living_tributes)} tributes remaining')
-        for tribute in self.living_tributes:
-            print(tribute)
+        # Print current living tributes
+        self.print_tributes()
 
+        # Find who died this round
+        died_today = [
+            tribute
+            for tribute in currently_alive
+            if tribute.is_dead
+        ]
+        if len(died_today) == 0:
+            print('Everyone survived today!')
+        else:
+            print(f'{len(died_today)} tributes died today:')
+            for tribute in died_today:
+                self.dead_tributes.append((tribute, self.day))
+                print(f'{tribute.name} is dead!')
+        # Wait for user to continue
         print('~~~~~~~~~~~~~~~')
         input('Continue? :')
 
         return True
 
     def run_game(self):
+        print('Starting Hunger Games Simulation!')
+        print('~~~~~~~~~~~~~~~')
+        print('Initial Tributes:')
+        self.print_tributes()
+        print('~~~~~~~~~~~~~~~')
         while self.progress_time():
             pass
 
