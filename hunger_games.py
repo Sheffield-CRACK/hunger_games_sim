@@ -66,13 +66,15 @@ class Tribute:
         """Calculate a fighting score."""
         return self.rank + self.hunger + self.thirst + self.health
 
-    def progress_time(self):
+    def progress_time(self) -> bool:
         '''
         This function deals with the effects of time progressing
+
+        Returns a bool indicating if the tribute is alive.
         '''
         # do nothing if tribute is already dead
         if self.is_dead:
-            return
+            return False
 
         self.hunger -= 1
         self.thirst -= 1
@@ -85,6 +87,7 @@ class Tribute:
         if self.thirst < 0:
             self.kill()
 
+        return self.is_alive
 
 class EventBase(ABC):
 
@@ -204,15 +207,29 @@ class GameMaker():
     def living_tributes(self) -> list[Tribute]:
         return [tribute for tribute in self.tributes if not tribute.is_dead]
 
-
     def progress_time(self) -> bool:
         print('Progressing time...')
         self.day += 1
         print(f'Day {self.day}')
 
+        # shuffle the tributes
+        random.shuffle(self.tributes)
+
         # progress time for each tribute
+        number_alive = len(self.living_tributes)
         for tribute in self.tributes:
-            tribute.progress_time()
+            # if everyone else dies mid-turn, end the game
+            if number_alive == 1:
+                self.game_over()
+                return False
+            
+            # skip dead people
+            if tribute.is_dead:
+                continue
+            
+            stays_alive = tribute.progress_time()
+            if not stays_alive:
+                number_alive -= 1
 
         # print living tributes
         print('Living tributes:')
@@ -226,8 +243,7 @@ class GameMaker():
         event(self.living_tributes).execute()
 
         if len(self.living_tributes) == 1:
-            print('Game Over')
-            print(f'Winner: {self.living_tributes[0].name} :D')
+            self.game_over()
             return False
 
         print(f'{len(self.living_tributes)} tributes remaining')
@@ -238,6 +254,10 @@ class GameMaker():
         input('Continue? :')
 
         return True
+    
+    def game_over(self):
+        print('Game Over')
+        print(f'Winner: {self.living_tributes[0].name} :D')
 
     def run_game(self):
         while self.progress_time():
