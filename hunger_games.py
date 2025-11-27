@@ -1,30 +1,32 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 import random
 import time
 
 class Tribute:
-    name:str
-    district:int
-    rank:int
-    trait:str
-    enemies:list
-    allies:list
-    hunger:float
-    thirst:float
-    _health:float
+    name: str
+    district: int
+    rank: int
+    trait: str
+    enemies: list[Tribute]
+    allies: list[Tribute]
+    hunger: float
+    thirst: float
+    _health: float
 
     def __init__(
-            self,
-            name,
-            district,
-            rank,
-            trait,
-            enemies=None,
-            allies=None,
-            hunger=12,
-            thirst=12,
-            health=12,
-        ):
+        self,
+        name: str,
+        district: int,
+        rank: int,
+        trait: str,
+        enemies: list[Tribute] = [],
+        allies: list[Tribute] = [],
+        hunger: int = 12,
+        thirst: int = 12,
+        health: int = 12,
+    ):
         self.name = name
         self.district = district
         self.rank = rank
@@ -35,7 +37,7 @@ class Tribute:
         self.thirst = thirst
         self._health = health
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score})"
 
     @property
@@ -44,16 +46,16 @@ class Tribute:
 
     def set_health(self, new_health):
         self._health = new_health
-        if new_health <=0:
+        if new_health <= 0:
             print(f"{self.name} has died!")
 
     def adjust_health(self, adjust_health):
         self.set_health(self.health + adjust_health)
     @property
-    def is_dead(self)->bool:
+    def is_dead(self) -> bool:
         return self.health <= 0
     @property
-    def is_alive(self)->bool:
+    def is_alive(self) -> bool:
         return not self.is_dead
 
     def kill(self):
@@ -119,7 +121,7 @@ class EventFight(EventBase):
         if difference >= 6:
             print(f'{stronger.name} is much stronger than {weaker.name}!')
             winner, loser = stronger, weaker
-        elif 0<difference< 6:
+        elif 0 < difference < 6:
             # Draw, but stronger player has a slight advantage
             if random.random() < 0.7:
                 print(f'{stronger.name} is slightly stronger than {weaker.name}!')
@@ -127,6 +129,8 @@ class EventFight(EventBase):
             else:
                 print(f'{weaker.name} managed to overpower {stronger.name}!')
                 winner, loser = weaker, stronger
+        else:
+            raise ValueError("Logic error in fight calculation: stronger person isn't stronger than the weaker person!")
 
         if random.random() < 0.5:
             print(f'{winner.name} killed {loser.name}!')
@@ -184,7 +188,7 @@ class EventDrink(EventBase):
 class GameMaker():
 
     tributes: list[Tribute]
-    events: list[EventBase]
+    events: list[type[EventBase]]
 
     def __init__(self, tributes:list[Tribute]):
         self.tributes = tributes
@@ -201,7 +205,7 @@ class GameMaker():
         return [tribute for tribute in self.tributes if not tribute.is_dead]
 
 
-    def progress_time(self):
+    def progress_time(self) -> bool:
         print('Progressing time...')
         self.day += 1
         print(f'Day {self.day}')
@@ -215,8 +219,8 @@ class GameMaker():
         for tribute in self.living_tributes:
             print(tribute)
 
-        # randomly select an event
-        event:EventBase = random.choice(self.events)
+        # randomly select an event type
+        event: type[EventBase] = random.choice(self.events)
 
         # select participating tributes
         event(self.living_tributes).execute()
