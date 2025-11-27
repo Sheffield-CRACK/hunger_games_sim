@@ -89,6 +89,7 @@ class Tribute:
 class EventBase(ABC):
 
     tributes: list[Tribute]
+    num_participants: int = 1
 
     def __init__(self, tributes:list[Tribute]):
         self.tributes = tributes
@@ -98,6 +99,8 @@ class EventBase(ABC):
         ...
 
 class EventFight(EventBase):
+
+    num_participants = 2
 
     def execute(self):
         print('A fight is happening!')
@@ -142,35 +145,39 @@ class EventFight(EventBase):
 
 class EventMutts(EventBase):
 
-    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrelu', 'wolf mutts', 'monkey mutts']
+    num_participants = random.randint(1, 4)
+    mutts_list = ['tracker jackers', 'jabberjays', 'carnivorous squirrels', 'wolf mutts', 'monkey mutts']
 
     def execute(self):
 
         mutt = random.choice(self.mutts_list)
-        print(f"{mutt} have been released in the arena!")
+        print(f"{mutt.capitalize()} have been released in the arena!")
 
-        tribute: Tribute = random.choice(self.tributes)
-        d6 = random.randint(1,6)
+        tributes = random.sample(self.tributes, k=self.num_participants)
+        for tribute in tributes:
+            d6 = random.randint(1,6)
 
-        if d6 in [1]:
-            # killed outright
-            print(f"{tribute.name} was killed by the {mutt}!")
-            tribute.kill()
-        if d6 in [2,3]:
-            # severe injury
-            tribute.adjust_health(-5)
-            print(f"{tribute.name} was severely wounded by the {mutt}!")
-        if d6 in [4,5]:
-            # wounded!
-            tribute.adjust_health(-3)
-            print(f"{tribute.name} was slightly wounded by the {mutt}!")
-        if d6 in [6]:
-            # escaped!
-            tribute.adjust_health(-3)
-            print(f"{tribute.name} escaped the {mutt}!")
+            if d6 in [1]:
+                # killed outright
+                print(f"{tribute.name} was killed by the {mutt}!")
+                tribute.kill()
+            if d6 in [2,3]:
+                # severe injury
+                tribute.adjust_health(-5)
+                print(f"{tribute.name} was severely wounded by the {mutt}!")
+            if d6 in [4,5]:
+                # wounded!
+                tribute.adjust_health(-3)
+                print(f"{tribute.name} was slightly wounded by the {mutt}!")
+            if d6 in [6]:
+                # escaped!
+                tribute.adjust_health(-1)
+                print(f"{tribute.name} escaped the {mutt}!")
 
 
 class EventFood(EventBase):
+
+    num_participants = 1
 
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
@@ -180,10 +187,13 @@ class EventFood(EventBase):
 
 class EventDrink(EventBase):
 
+    num_participants = 1
+
     def execute(self):
         tribute = random.sample(self.tributes, k=1)
         print(f'{tribute[0].name} found some water!')
         tribute[0].thirst += 2
+
 
 class GameMaker():
 
@@ -219,11 +229,26 @@ class GameMaker():
         for tribute in self.living_tributes:
             print(tribute)
 
-        # randomly select an event type
-        event: type[EventBase] = random.choice(self.events)
+        remaining_tributes = self.living_tributes.copy()
+        while len(remaining_tributes) > 0:
+            print('~~~~~~~~~~~~~~~')
+            # randomly select an event type
+            event = random.choice(self.events)
 
-        # select participating tributes
-        event(self.living_tributes).execute()
+            # check if enough tributes remain for this event
+            if len(remaining_tributes) < event.num_participants:
+                continue
+
+            # select tributes for this event
+            selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
+
+            # execute the event
+            event(selected_tributes).execute()
+
+            # remove selected tributes from remaining tributes
+            for tribute in selected_tributes:
+                remaining_tributes.remove(tribute)
+        print('~~~~~~~~~~~~~~~')
 
         if len(self.living_tributes) == 1:
             print('Game Over')
