@@ -214,30 +214,33 @@ class GameMaker():
     def living_tributes(self) -> list[Tribute]:
         return [tribute for tribute in self.tributes if not tribute.is_dead]
 
-
-    def progress_time(self) -> bool:
-        print('Progressing time...')
-        self.day += 1
-        print(f'Day {self.day}')
-
-        # progress time for each tribute
+    def print_tributes(self):
+        print(f'{len(self.tributes)} tributes in the game:')
         for tribute in self.tributes:
-            tribute.progress_time()
-
-        # print living tributes
-        print('Living tributes:')
-        for tribute in self.living_tributes:
             print(tribute)
 
+    def progress_time(self) -> bool:
+        self.day += 1
+        print(f'Day {self.day}')
+        print('~~~~~~~~~~~~~~~')
+
+        # progress time for each tribute
+        print('Progressing time...')
+        for tribute in self.tributes:
+            tribute.progress_time()
+        self.print_tributes()
+
+        # execute events
         remaining_tributes = self.living_tributes.copy()
         while len(remaining_tributes) > 0:
-            print('~~~~~~~~~~~~~~~')
             # randomly select an event type
             event = random.choice(self.events)
 
             # check if enough tributes remain for this event
             if len(remaining_tributes) < event.num_participants:
                 continue
+
+            print('~~~~~~~~~~~~~~~')
 
             # select tributes for this event
             selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
@@ -250,21 +253,27 @@ class GameMaker():
                 remaining_tributes.remove(tribute)
         print('~~~~~~~~~~~~~~~')
 
+        # Check for game over
         if len(self.living_tributes) == 1:
             print('Game Over')
             print(f'Winner: {self.living_tributes[0].name} :D')
             return False
 
-        print(f'{len(self.living_tributes)} tributes remaining')
-        for tribute in self.living_tributes:
-            print(tribute)
+        # Print current living tributes
+        self.print_tributes()
 
+        # Wait for user to continue
         print('~~~~~~~~~~~~~~~')
         input('Continue? :')
 
         return True
 
     def run_game(self):
+        print('Starting Hunger Games Simulation!')
+        print('~~~~~~~~~~~~~~~')
+        print('Initial Tributes:')
+        self.print_tributes()
+        print('~~~~~~~~~~~~~~~')
         while self.progress_time():
             pass
 
