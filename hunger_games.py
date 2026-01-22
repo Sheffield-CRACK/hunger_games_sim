@@ -64,6 +64,7 @@ class Tribute:
         self.thirst = thirst
         self._health = health
         self.coords = [0,0] if coords is None else coords
+        self.equipment = []
 
     def __str__(self) -> str:
         traits_str = ', '.join(self.trait)
@@ -139,6 +140,39 @@ class Tribute:
         return self.is_alive
 
 
+class Equipment:
+    name: str
+    hunger_bonus: int
+    thirst_bonus: int
+    health_bonus: int
+    fighting_bonus: int
+    charges: int
+
+    def __init__(
+        self,
+        name: str,
+        hunger_bonus: int = 0,
+        thirst_bonus: int = 0,
+        health_bonus: int = 0,
+        fighting_bonus: int = 0,
+        charges: int = -1,
+    ):
+        self.name = name
+        self.hunger_bonus = hunger_bonus
+        self.thirst_bonus = thirst_bonus
+        self.health_bonus = health_bonus
+        self.fighting_bonus = fighting_bonus
+        self.charges = charges
+
+    @property
+    def is_broken(self) -> bool:
+        return self.charges <= 0
+
+    def use(self) -> bool:
+        self.charges -= 1
+        return self.charges
+
+
 class EventBase(ABC):
 
     tributes: list[Tribute]
@@ -162,15 +196,15 @@ class EventFight(EventBase):
             if coords_key not in location_groups:
                 location_groups[coords_key] = []
             location_groups[coords_key].append(tribute)
-        
+
         # Find locations with at least 2 tributes
         valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
-        
+
         if not valid_locations:
             return []
-        
+
         print('A fight is happening!')
-        
+
         # Pick a random location with multiple tributes
         fight_location = random.choice(valid_locations)
         players = random.sample(fight_location, k=self.num_participants)
@@ -271,6 +305,57 @@ class EventDrink(EventBase):
         tribute[0].thirst += 2
         return tribute
 
+
+class EventGetEquipment(EventBase):
+
+    num_participants = 1
+    possible_equipment = [
+        Equipment(name='Knife', fighting_bonus=2, charges=99),
+        Equipment(name='Bow and Arrows', fighting_bonus=3, charges=5),
+        Equipment(name='First Aid Kit', health_bonus=5, charges=1),
+        Equipment(name='Canteen', thirst_bonus=5, charges=3),
+        Equipment(name='Rations', hunger_bonus=2, charges=2),
+    ]
+
+    def execute(self):
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        equipment = random.choice(self.possible_equipment)
+        tribute.equipment.append(equipment)
+        print(f'{tribute.name} found equipment: {equipment.name}!')
+        return [tribute]
+
+
+class EventUseEquipment(EventBase):
+
+    num_participants = 1
+
+    def execute(self):
+        tributes_with_equipment = [tribute for tribute in self.tributes if len(tribute.equipment) > 0]
+        if len(tributes_with_equipment) == 0:
+            return []
+
+        tribute = random.choice(tributes_with_equipment)
+
+        for equipment in tribute.equipment:
+            print(f'{tribute.name} is using {equipment.name} ({equipment.charges} uses left).')
+
+            # Apply equipment effects
+            tribute.hunger += equipment.hunger_bonus
+            tribute.thirst += equipment.thirst_bonus
+            tribute.adjust_health(equipment.health_bonus)
+
+            # Remove equipment if it has limited charges
+            equipment.use()
+            if equipment.is_broken:
+                print(f'{equipment.name} is gone!')
+                tribute.equipment.remove(equipment)
+            else:
+                print(f'{equipment.name} has {equipment.charges} uses left.')
+
+        return [tribute]
+
+
+
 class GameMaker():
 
     tributes: list[Tribute]
@@ -283,6 +368,8 @@ class GameMaker():
             EventMutts,
             EventFood,
             EventDrink,
+            EventGetEquipment,
+            EventUseEquipment,
         ]
         self.day = 0
         self.dead_tributes: list[tuple[Tribute, int]] = []
@@ -312,7 +399,7 @@ class GameMaker():
         if self.day == 1:
             print('The tributes gather at the cornucopia...')
             self.print_tributes()
-            
+
             # execute events first on day 1
             remaining_tributes = self.living_tributes.copy()
             while len(remaining_tributes) > 0:
@@ -340,7 +427,7 @@ class GameMaker():
 
             print('~~~~~~~~~~~~~~~')
             print('Tributes scatter from the cornucopia...')
-            
+
             # Now progress time (movement) after events on day 1
             number_alive = len(self.living_tributes)
             for tribute in self.tributes:
