@@ -155,8 +155,25 @@ class EventFight(EventBase):
 
     num_participants = 2
     def execute(self):
+        # Group tributes by location
+        location_groups = {}
+        for tribute in self.tributes:
+            coords_key = tuple(tribute.coords)
+            if coords_key not in location_groups:
+                location_groups[coords_key] = []
+            location_groups[coords_key].append(tribute)
+        
+        # Find locations with at least 2 tributes
+        valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
+        
+        if not valid_locations:
+            return []
+        
         print('A fight is happening!')
-        players = random.sample(self.tributes, k=self.num_participants)
+        
+        # Pick a random location with multiple tributes
+        fight_location = random.choice(valid_locations)
+        players = random.sample(fight_location, k=self.num_participants)
 
         print('Fighting between:')
         for player in players:
@@ -290,49 +307,99 @@ class GameMaker():
         # shuffle the tributes
         random.shuffle(self.tributes)
 
-        # progress time for each tribute
-        print('Progressing time...')
-        number_alive = len(self.living_tributes)
-        for tribute in self.tributes:
-            # if everyone else dies mid-turn, end the game
-            if number_alive == 1:
-                self.game_over()
-                return False
+        # On day 1, run events first (initial bloodbath at cornucopia), then movement
+        # On subsequent days, movement happens first, then events
+        if self.day == 1:
+            print('The tributes gather at the cornucopia...')
+            self.print_tributes()
+            
+            # execute events first on day 1
+            remaining_tributes = self.living_tributes.copy()
+            while len(remaining_tributes) > 0:
+                print('~~~~~~~~~~~~~~~')
+                # randomly select an event type
+                event = random.choice(self.events)
 
-            # skip dead people
-            if tribute.is_dead:
-                continue
+                # check if enough tributes remain for this event
+                if len(remaining_tributes) < event.num_participants:
+                    continue
 
-            stays_alive = tribute.progress_time()
-            if not stays_alive:
-                number_alive -= 1
+                # select tributes for this event
+                if event.num_participants == -1:
+                    # all remaining tributes participate
+                    selected_tributes = remaining_tributes.copy()
+                else:
+                    selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
-        self.print_tributes()
+                # execute the event
+                affected_tributes = event(selected_tributes).execute()
 
-        # execute events
-        remaining_tributes = self.living_tributes.copy()
-        while len(remaining_tributes) > 0:
+                # remove selected tributes from remaining tributes
+                for tribute in affected_tributes:
+                    remaining_tributes.remove(tribute)
+
             print('~~~~~~~~~~~~~~~')
-            # randomly select an event type
-            event = random.choice(self.events)
+            print('Tributes scatter from the cornucopia...')
+            
+            # Now progress time (movement) after events on day 1
+            number_alive = len(self.living_tributes)
+            for tribute in self.tributes:
+                # if everyone else dies mid-turn, end the game
+                if number_alive == 1:
+                    self.game_over()
+                    return False
 
-            # check if enough tributes remain for this event
-            if len(remaining_tributes) < event.num_participants:
-                continue
+                # skip dead people
+                if tribute.is_dead:
+                    continue
 
-            # select tributes for this event
-            if event.num_participants == -1:
-                # all remaining tributes participate
-                selected_tributes = remaining_tributes.copy()
-            else:
-                selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
+                stays_alive = tribute.progress_time()
+                if not stays_alive:
+                    number_alive -= 1
+        else:
+            # progress time for each tribute (movement happens first on day 2+)
+            print('Progressing time...')
+            number_alive = len(self.living_tributes)
+            for tribute in self.tributes:
+                # if everyone else dies mid-turn, end the game
+                if number_alive == 1:
+                    self.game_over()
+                    return False
 
-            # execute the event
-            affected_tributes = event(selected_tributes).execute()
+                # skip dead people
+                if tribute.is_dead:
+                    continue
 
-            # remove selected tributes from remaining tributes
-            for tribute in affected_tributes:
-                remaining_tributes.remove(tribute)
+                stays_alive = tribute.progress_time()
+                if not stays_alive:
+                    number_alive -= 1
+
+            self.print_tributes()
+
+            # execute events after movement on day 2+
+            remaining_tributes = self.living_tributes.copy()
+            while len(remaining_tributes) > 0:
+                print('~~~~~~~~~~~~~~~')
+                # randomly select an event type
+                event = random.choice(self.events)
+
+                # check if enough tributes remain for this event
+                if len(remaining_tributes) < event.num_participants:
+                    continue
+
+                # select tributes for this event
+                if event.num_participants == -1:
+                    # all remaining tributes participate
+                    selected_tributes = remaining_tributes.copy()
+                else:
+                    selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
+
+                # execute the event
+                affected_tributes = event(selected_tributes).execute()
+
+                # remove selected tributes from remaining tributes
+                for tribute in affected_tributes:
+                    remaining_tributes.remove(tribute)
 
         print('~~~~~~~~~~~~~~~')
 
