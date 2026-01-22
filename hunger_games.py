@@ -155,8 +155,6 @@ class EventFight(EventBase):
 
     num_participants = 2
     def execute(self):
-        print('A fight is happening!')
-        
         # Group tributes by location
         location_groups = {}
         for tribute in self.tributes:
@@ -169,8 +167,9 @@ class EventFight(EventBase):
         valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
         
         if not valid_locations:
-            print('No tributes are in the same location to fight!')
             return []
+        
+        print('A fight is happening!')
         
         # Pick a random location with multiple tributes
         fight_location = random.choice(valid_locations)
