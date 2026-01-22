@@ -156,7 +156,25 @@ class EventFight(EventBase):
     num_participants = 2
     def execute(self):
         print('A fight is happening!')
-        players = random.sample(self.tributes, k=self.num_participants)
+        
+        # Group tributes by location
+        location_groups = {}
+        for tribute in self.tributes:
+            coords_key = tuple(tribute.coords)
+            if coords_key not in location_groups:
+                location_groups[coords_key] = []
+            location_groups[coords_key].append(tribute)
+        
+        # Find locations with at least 2 tributes
+        valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
+        
+        if not valid_locations:
+            print('No tributes are in the same location to fight!')
+            return []
+        
+        # Pick a random location with multiple tributes
+        fight_location = random.choice(valid_locations)
+        players = random.sample(fight_location, k=self.num_participants)
 
         print('Fighting between:')
         for player in players:
