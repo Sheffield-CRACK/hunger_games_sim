@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import random
 import json
-import time
+
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 
 class Tribute:
@@ -23,13 +24,13 @@ class Tribute:
         name: str,
         district: int,
         rank: int,
-        trait: list[str] = None,
+        trait: list[str] | None = None,
         enemies: list[Tribute] = [],
         allies: list[Tribute] = [],
         hunger: int = 12,
         thirst: int = 12,
         health: int = 12,
-        coords: list[int]|None = None,
+        coords: list[int] | None = None,
     ):
         self.name = name
         self.district = district
@@ -67,8 +68,30 @@ class Tribute:
         self.equipment = []
 
     def __str__(self) -> str:
-        traits_str = ', '.join(self.trait)
-        return f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score}), {self.coords} - Traits: {traits_str}"
+        string = f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score})"
+        string += f", {self.coords}\n"
+
+        # Traits
+        string += " - Traits:\n"
+        trait_str = ", ".join(self.trait) if len(self.trait) > 0 else "None"
+        string += f"   - {trait_str}\n"
+
+        # Equipment
+        string += " - Equipment:\n"
+        if len(self.equipment) == 0:
+            string += "   - None\n"
+        else:
+            equipment_string = ""
+            for equipment in self.equipment:
+                if equipment.charges == -1:
+                    charges_str = "unlimited uses"
+                else:
+                    charges_str = f"{equipment.charges} uses left"
+                equipment_string += f"{equipment.name} ({charges_str}),"
+            equipment_string = equipment_string[:-1]  # remove trailing comma
+            string += f"   - {equipment_string}\n"
+
+        return string
 
 
     @property
@@ -95,14 +118,23 @@ class Tribute:
     @property
     def fighting_score(self) -> float:
         """Calculate a fighting score."""
+        fighting_score = self.rank + self.hunger + self.thirst + self.health
+
+        # Traits that increase fighting score:
         if 'Career' in self.trait:
-            fighting_score = self.rank + self.hunger + self.thirst + self.health + 2
+            fighting_score += 2
         elif 'Strong' in self.trait:
-            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
+            fighting_score += 1
         elif 'Ranged Fighter' in self.trait:
-            fighting_score = self.rank + self.hunger + self.thirst + self.health + 1
-        else:
-            fighting_score = self.rank + self.hunger + self.thirst + self.health
+            fighting_score += 1
+
+        # Equipment bonuses
+        equipment_bonus = 0
+        for item in self.equipment:
+            if item.fighting_bonus > equipment_bonus:
+                equipment_bonus = item.fighting_bonus
+        fighting_score += equipment_bonus
+
         return fighting_score
 
     def progress_time(self) -> bool:
@@ -166,10 +198,13 @@ class Equipment:
 
     @property
     def is_broken(self) -> bool:
+        if self.charges == -1:  # Non-exhaustible equipment never breaks
+            return False
         return self.charges <= 0
 
-    def use(self) -> bool:
-        self.charges -= 1
+    def use(self) -> int:
+        if self.charges > 0:  # Non-exhaustible equipment never removes charges
+            self.charges -= 1
         return self.charges
 
 
@@ -211,39 +246,67 @@ class EventFight(EventBase):
 
         print('Fighting between:')
         for player in players:
-            print(f' - {player.name} (rank: {player.rank}, health: {player.health})')
+            print(f' - {player.name} (rank: {player.rank}, health: {player.health}, fighting score: {player.fighting_score})')
 
         # Choose who is strongest
         if players[0].fighting_score == players[1].fighting_score:
             print('It was a draw!')
             players[0].adjust_health(-1)
             players[1].adjust_health(-1)
-            return players
-        sorted_players = sorted(players, key=lambda x: x.fighting_score, reverse=True)
-        stronger, weaker = sorted_players[0], sorted_players[1]
+            winner = None
+            loser = None
 
-        # Choose who wins the fight
-        difference = stronger.fighting_score - weaker.fighting_score
-        if difference >= 6:
-            print(f'{stronger.name} is much stronger than {weaker.name}!')
-            winner, loser = stronger, weaker
-        elif 0 < difference < 6:
-            # Draw, but stronger player has a slight advantage
-            if random.random() < 0.7:
-                print(f'{stronger.name} is slightly stronger than {weaker.name}!')
+        else:
+            sorted_players = sorted(players, key=lambda x: x.fighting_score, reverse=True)
+            stronger, weaker = sorted_players[0], sorted_players[1]
+
+            # Choose who wins the fight
+            difference = stronger.fighting_score - weaker.fighting_score
+            if difference >= 6:
+                print(f'{stronger.name} is much stronger than {weaker.name}!')
                 winner, loser = stronger, weaker
+            elif 0 < difference < 6:
+                # Draw, but stronger player has a slight advantage
+                if random.random() < 0.7:
+                    print(f'{stronger.name} is slightly stronger than {weaker.name}!')
+                    winner, loser = stronger, weaker
+                else:
+                    print(f'{weaker.name} managed to overpower {stronger.name}!')
+                    winner, loser = weaker, stronger
             else:
-                print(f'{weaker.name} managed to overpower {stronger.name}!')
-                winner, loser = weaker, stronger
-        else:
-            raise ValueError("Logic error in fight calculation: stronger person isn't stronger than the weaker person!")
+                raise ValueError("Logic error in fight calculation: stronger person isn't stronger than the weaker person!")
 
-        if random.random() < 0.5:
-            print(f'{winner.name} killed {loser.name}!')
-            loser.kill()
-        else:
-            print(f'{loser.name} managed to escape from {winner.name}!')
-            loser.adjust_health(-1)
+            if random.random() < 0.5:
+                print(f'{winner.name} killed {loser.name}!')
+                loser.kill()
+            else:
+                print(f'{loser.name} managed to escape from {winner.name}!')
+                loser.adjust_health(-1)
+
+        # Remove equipment if it has limited charges
+        for player in players:
+            if len(player.equipment) == 0:
+                continue
+            best_fighting_bonus = max([e.fighting_bonus for e in player.equipment])
+            if best_fighting_bonus == 0:
+                continue
+
+            for equipment in player.equipment:
+                if equipment.fighting_bonus == best_fighting_bonus:
+                    print(f'{player.name} used {equipment.name} in the fight!')
+                    equipment.use()
+                    if equipment.is_broken:
+                        print(f'{equipment.name} is gone!')
+                        player.equipment.remove(equipment)
+                    else:
+                        print(f'{equipment.name} has {equipment.charges} uses left.')
+
+        # If loser is dead, winner picks up their equipment
+        if loser is not None and winner is not None and loser.is_dead:
+            for equipment in loser.equipment:
+                print(f'{winner.name} picked up {loser.name}\'s {equipment.name}!')
+            winner.equipment += loser.equipment
+            loser.equipment = []
 
         return players
 
@@ -310,8 +373,14 @@ class EventGetEquipment(EventBase):
 
     num_participants = 1
     possible_equipment = [
-        Equipment(name='Knife', fighting_bonus=2, charges=99),
-        Equipment(name='Bow and Arrows', fighting_bonus=3, charges=5),
+        # Non-exhaustible equipment
+        Equipment(name='Knife', fighting_bonus=2, charges=-1),
+        Equipment(name='Sword', fighting_bonus=3, charges=-1),
+        Equipment(name='Axe', fighting_bonus=2, charges=-1),
+        Equipment(name='Trident', fighting_bonus=3, charges=-1),
+        # Exhaustible equipment
+        Equipment(name='Bow and Arrows', fighting_bonus=3, charges=6),
+        Equipment(name='Blowgun', fighting_bonus=2, charges=12),
         Equipment(name='First Aid Kit', health_bonus=5, charges=1),
         Equipment(name='Canteen', thirst_bonus=5, charges=3),
         Equipment(name='Rations', hunger_bonus=2, charges=2),
@@ -320,8 +389,24 @@ class EventGetEquipment(EventBase):
     def execute(self):
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
         equipment = random.choice(self.possible_equipment)
-        tribute.equipment.append(equipment)
-        print(f'{tribute.name} found equipment: {equipment.name}!')
+        new_equipment = deepcopy(equipment)
+
+        if new_equipment.charges != -1:
+            # Exhaustible equipment
+            # Check if they already have one of the same type
+            already_has_one = False
+            for equip in tribute.equipment:
+                if equip.name == new_equipment.name:
+                    already_has_one = True
+                    print(f'{tribute.name} found {new_equipment.name} but already has one!')
+                    equip.charges += new_equipment.charges
+                    print(f'{equip.name} now has {equip.charges} uses!')
+            if not already_has_one:
+                print(f'{tribute.name} found equipment: {new_equipment.name}!')
+                tribute.equipment.append(new_equipment)
+        else:
+            print(f'{tribute.name} found equipment: {new_equipment.name}!')
+            tribute.equipment.append(new_equipment)
         return [tribute]
 
 
@@ -337,6 +422,9 @@ class EventUseEquipment(EventBase):
         tribute = random.choice(tributes_with_equipment)
 
         for equipment in tribute.equipment:
+            if equipment.fighting_bonus > 0:
+                continue
+
             print(f'{tribute.name} is using {equipment.name} ({equipment.charges} uses left).')
 
             # Apply equipment effects
@@ -365,9 +453,9 @@ class GameMaker():
         self.tributes = tributes
         self.events = [
             EventFight,
-            EventMutts,
-            EventFood,
-            EventDrink,
+            # EventMutts,
+            # EventFood,
+            # EventDrink,
             EventGetEquipment,
             EventUseEquipment,
         ]
