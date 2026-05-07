@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import random
 import json
-
+import random
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
@@ -83,16 +82,11 @@ class Tribute:
         else:
             equipment_string = ""
             for equipment in self.equipment:
-                if equipment.charges == -1:
-                    charges_str = "unlimited uses"
-                else:
-                    charges_str = f"{equipment.charges} uses left"
-                equipment_string += f"{equipment.name} ({charges_str}),"
-            equipment_string = equipment_string[:-1]  # remove trailing comma
+                equipment_string += f"{equipment}, "
+            equipment_string = equipment_string[:-2]  # remove trailing comma
             string += f"   - {equipment_string}\n"
 
         return string
-
 
     @property
     def health(self)-> float:
@@ -196,6 +190,10 @@ class Equipment:
         self.fighting_bonus = fighting_bonus
         self.charges = charges
 
+    def __repr__(self) -> str:
+        charges_str = "unlimited" if self.charges == -1 else f"{self.charges} uses left"
+        return f"{self.name} ({charges_str})"
+
     @property
     def is_broken(self) -> bool:
         if self.charges == -1:  # Non-exhaustible equipment never breaks
@@ -213,7 +211,8 @@ class EventBase(ABC):
     tributes: list[Tribute]
     num_participants: int = 1
 
-    def __init__(self, tributes:list[Tribute]):
+    def __init__(self, gamemaker, tributes:list[Tribute]):
+        self.gamemaker = gamemaker
         self.tributes = tributes
 
     @abstractmethod
@@ -363,33 +362,54 @@ class EventDrink(EventBase):
     num_participants = 1
 
     def execute(self):
-        tribute = random.sample(self.tributes, k=self.num_participants)
-        print(f'{tribute[0].name} found some water!')
-        tribute[0].thirst += 2
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f'{tribute.name} found some water!')
+        tribute.thirst += 2
+
+        # Use water purifier if they have it
+        used_water_purifier = False
+        tribute_equipment_names = [
+            equipment.name for equipment in tribute.equipment
+        ]
+        if 'Water Purifier' in tribute_equipment_names:
+            print(f'{tribute.name} used a Water Purifier')
+            for equipment in tribute.equipment:
+                if equipment.name == 'Water Purifier':
+                    equipment.use()
+                    used_water_purifier = True
+                    if equipment.is_broken:
+                        print(f'{equipment.name} is gone!')
+                        tribute.equipment.remove(equipment)
+                    else:
+                        print(f'{equipment.name} has {equipment.charges} uses left.')
+        is_bad = random.random() < 0.5
+        if is_bad and not used_water_purifier:
+            print(f'{tribute.name} drank from the water and got sick!')
+            tribute.adjust_health(-2)
+        else:
+            print(f'{tribute.name} drank from the water and stayed healthy!')
+
         return tribute
 
 
 class EventGetEquipment(EventBase):
 
     num_participants = 1
-    possible_equipment = [
-        # Non-exhaustible equipment
-        Equipment(name='Knife', fighting_bonus=2, charges=-1),
-        Equipment(name='Sword', fighting_bonus=3, charges=-1),
-        Equipment(name='Axe', fighting_bonus=2, charges=-1),
-        Equipment(name='Trident', fighting_bonus=3, charges=-1),
-        # Exhaustible equipment
-        Equipment(name='Bow and Arrows', fighting_bonus=3, charges=6),
-        Equipment(name='Blowgun', fighting_bonus=2, charges=12),
-        Equipment(name='First Aid Kit', health_bonus=5, charges=1),
-        Equipment(name='Canteen', thirst_bonus=5, charges=3),
-        Equipment(name='Rations', hunger_bonus=2, charges=2),
-    ]
 
     def execute(self):
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
-        equipment = random.choice(self.possible_equipment)
+        valid_equipment = [
+            equipment for equipment, quantity in self.gamemaker.equipment.items()
+            if quantity > 0
+        ]
+        if len(valid_equipment) == 0:
+            print('No equipment left to find, womp womp!')
+            return [tribute]
+        equipment = random.choice(valid_equipment)
         new_equipment = deepcopy(equipment)
+
+        # Remove one of the equipments from gamemaker inventory
+        self.gamemaker.equipment[equipment] -= 1
 
         if new_equipment.charges != -1:
             # Exhaustible equipment
@@ -425,7 +445,7 @@ class EventUseEquipment(EventBase):
             if equipment.fighting_bonus > 0:
                 continue
 
-            print(f'{tribute.name} is using {equipment.name} ({equipment.charges} uses left).')
+            print(f'{tribute.name} is using {equipment}).')
 
             # Apply equipment effects
             tribute.hunger += equipment.hunger_bonus
@@ -443,14 +463,48 @@ class EventUseEquipment(EventBase):
         return [tribute]
 
 
+class EventSponsorGift(EventBase):
+
+    num_participants = 1
+    possible_gifts = [
+        Equipment(name='Medicine', health_bonus=8, charges=1),
+        Equipment(name='Wine', thirst_bonus=5, charges=3),
+        Equipment(name='Bread', hunger_bonus=4, charges=4),
+        Equipment(name='Spile', thirst_bonus=1, charges=-1),
+        Equipment(name='Water Purifier', charges=3),
+        Equipment(name='Fire starter kit', charges=3),
+    ]
+
+    def execute(self):
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        gift = random.choice(self.possible_gifts)
+        gift = deepcopy(gift)
+        print(f'{tribute.name} received a sponsor gift: {gift}!')
+        tribute.equipment.append(gift)
+        return [tribute]
+
 
 class GameMaker():
 
     tributes: list[Tribute]
     events: list[type[EventBase]]
+    equipment: dict[Equipment, int]
 
     def __init__(self, tributes:list[Tribute]):
         self.tributes = tributes
+        self.equipment = {
+            # Non-exhaustible equipment
+            Equipment(name='Knife', fighting_bonus=2, charges=-1) : 5,
+            Equipment(name='Sword', fighting_bonus=3, charges=-1): 1,
+            Equipment(name='Axe', fighting_bonus=2, charges=-1): 3,
+            Equipment(name='Trident', fighting_bonus=3, charges=-1) : 1,
+            # Exhaustible equipment
+            Equipment(name='Bow and Arrows', fighting_bonus=3, charges=6) : 2,
+            Equipment(name='Blowgun', fighting_bonus=1, charges=12) : 6,
+            Equipment(name='First Aid Kit', health_bonus=5, charges=1) : 3,
+            Equipment(name='Canteen', thirst_bonus=5, charges=3) : 3,
+            Equipment(name='Rations', hunger_bonus=2, charges=2) : 3,
+        }
         self.events = [
             EventFight,
             # EventMutts,
@@ -458,6 +512,7 @@ class GameMaker():
             # EventDrink,
             EventGetEquipment,
             EventUseEquipment,
+            EventSponsorGift,
         ]
         self.day = 0
         self.dead_tributes: list[tuple[Tribute, int]] = []
@@ -507,7 +562,7 @@ class GameMaker():
                     selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
                 # execute the event
-                affected_tributes = event(selected_tributes).execute()
+                affected_tributes = event(self, selected_tributes).execute()
 
                 # remove selected tributes from remaining tributes
                 for tribute in affected_tributes:
@@ -570,7 +625,7 @@ class GameMaker():
                     selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
                 # execute the event
-                affected_tributes = event(selected_tributes).execute()
+                affected_tributes = event(self, selected_tributes).execute()
 
                 # remove selected tributes from remaining tributes
                 for tribute in affected_tributes:
