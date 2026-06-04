@@ -15,13 +15,14 @@ class EventBase(ABC):
         self.tributes = tributes
 
     @abstractmethod
-    def execute(self): ...
+    def execute(self) -> list[Tribute]:
+        ...
 
 
 class EventFight(EventBase):
     num_participants = 2
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         # Group tributes by location
         location_groups = {}
         for tribute in self.tributes:
@@ -124,7 +125,7 @@ class EventMutts(EventBase):
         "feral undergrads",
     ]
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
 
         mutt = random.choice(self.mutts_list)
         mutt_zone = [random.randint(-2, 2), random.randint(-2, 2)]
@@ -158,17 +159,17 @@ class EventMutts(EventBase):
 class EventFood(EventBase):
     num_participants = 1
 
-    def execute(self):
-        tribute = random.sample(self.tributes, k=self.num_participants)
-        print(f"{tribute[0].name} found some food!")
-        tribute[0].hunger += 2
-        return tribute
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f"{tribute.name} found some food!")
+        tribute.hunger += 2
+        return [tribute]
 
 
 class EventDrink(EventBase):
     num_participants = 1
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
         print(f"{tribute.name} found some water!")
         tribute.thirst += 2
@@ -194,13 +195,13 @@ class EventDrink(EventBase):
         else:
             print(f"{tribute.name} drank from the water and stayed healthy!")
 
-        return tribute
+        return [tribute]
 
 
 class EventGetEquipment(EventBase):
     num_participants = 1
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
         valid_equipment = [
             equipment for equipment, quantity in self.gamemaker.equipment.items() if quantity > 0
@@ -236,7 +237,7 @@ class EventGetEquipment(EventBase):
 class EventUseEquipment(EventBase):
     num_participants = 1
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tributes_with_equipment = [
             tribute for tribute in self.tributes if len(tribute.equipment) > 0
         ]
@@ -278,7 +279,7 @@ class EventSponsorGift(EventBase):
         Equipment(name="Fire starter kit", charges=3),
     ]
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
         gift = random.choice(self.possible_gifts)
         gift = deepcopy(gift)
