@@ -1,3 +1,5 @@
+import json
+
 from shiny import App, render, ui, Inputs, Outputs, Session
 from shiny import reactive
 import math
@@ -148,7 +150,11 @@ def server(input: Inputs, output: Outputs, session: Session):
         alliances_store.set(None)
         traits_store.set(None)
         ranks_store.set(None)
-        ui.notification_show("Tribute names saved and assigned to districts.", type="success", duration=2)
+        
+        # Export to JSON automatically
+        _export_tributes_to_json()
+        
+        ui.notification_show("Tribute names saved, assigned to districts, and exported to tributes.json", type="success", duration=2)
 
     # Edit button: unsave tributes and return to input mode
     @reactive.effect
@@ -160,6 +166,46 @@ def server(input: Inputs, output: Outputs, session: Session):
         traits_store.set(None)
         ranks_store.set(None)
         ui.notification_show("You can now edit tribute names.", type="default", duration=2)
+
+    def _export_tributes_to_json():
+        """Helper function to export current tribute data to tributes.json"""
+        saved = tributes.get()
+        traits = traits_store.get() or {}
+        alliances = alliances_store.get() or {}
+        ranks = ranks_store.get() or {}
+        
+        export_data = []
+        for d in saved:
+            for tribute_name in d["tributes"]:
+                if tribute_name:  # Only include non-empty names
+                    # Convert traits and alliances to plain lists to ensure JSON serialization
+                    trait_list = list(traits.get(tribute_name, []))
+                    alliance_list = list(alliances.get(tribute_name, []))
+                    rank_val = ranks.get(tribute_name)
+                    
+                    tribute_obj = {
+                        "name": tribute_name,
+                        "district": d["district"],
+                        "traits": trait_list,
+                        "alliances": alliance_list,
+                        "rank": rank_val
+                    }
+                    export_data.append(tribute_obj)
+        
+        export_data = _convert_to_json_serializable(export_data)
+        with open('tributes.json', 'w') as f:
+            json.dump(export_data, f, indent=2)
+
+    def _convert_to_json_serializable(obj):
+        """Recursively convert reactive.Value objects and other non-serializable types to JSON-serializable equivalents"""
+        if isinstance(obj, reactive.Value):
+            return _convert_to_json_serializable(obj.get())
+        elif isinstance(obj, dict):
+            return {k: _convert_to_json_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [_convert_to_json_serializable(item) for item in obj]
+        else:
+            return obj
 
     def _saved_tribute_names_and_districts(saved):
         names = []
@@ -344,6 +390,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                 mapping[n] = None
 
         ranks_store.set(mapping)
+        _export_tributes_to_json()
         ui.notification_show("Ranks saved.", type="success", duration=2)
 
     @reactive.effect
@@ -357,6 +404,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         names, _ = _saved_tribute_names_and_districts(saved)
         mapping = {n: random.randint(1, 12) for n in names}
         ranks_store.set(mapping)
+        _export_tributes_to_json()
         ui.notification_show("Random ranks generated.", type="success", duration=2)
 
     # manual container shows inputs only when manual mode selected
@@ -481,6 +529,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             alliances[n] = allies
 
         alliances_store.set(alliances)
+        _export_tributes_to_json()
         ui.notification_show("Manual alliances saved.", type="success", duration=2)
 
     # Generate random alliances (variable number of allies per tribute; some may have none)
@@ -511,6 +560,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             alliances[name] = allies
 
         alliances_store.set(alliances)
+        _export_tributes_to_json()
         ui.notification_show("Random alliances generated.", type="success", duration=2)
 
     # Traits UI and handlers
@@ -664,9 +714,11 @@ def server(input: Inputs, output: Outputs, session: Session):
             # ensure Career is present for districts 1,2,4
             if districts[i] in (1, 2, 4) and "Career" not in chosen:
                 chosen = ["Career"] + chosen
-            mapping[n] = chosen
+            # Store as plain list to ensure serialization
+            mapping[n] = list(chosen)
 
         traits_store.set(mapping)
+        _export_tributes_to_json()
         ui.notification_show("Traits saved.", type="success", duration=2)
 
     @reactive.effect
@@ -687,9 +739,10 @@ def server(input: Inputs, output: Outputs, session: Session):
             # add Career for districts 1,2,4
             if districts[i] in (1, 2, 4) and "Career" not in chosen:
                 chosen = ["Career"] + chosen
-            mapping[n] = chosen
+            mapping[n] = list(chosen)
 
         traits_store.set(mapping)
+        _export_tributes_to_json()
         ui.notification_show("Random traits generated.", type="success", duration=2)
 
     @output
