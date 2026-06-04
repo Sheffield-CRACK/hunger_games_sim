@@ -2,6 +2,19 @@ from __future__ import annotations
 
 import random
 
+TRIBUTE_TRAITS = [
+    "Strong",
+    "Hunter",
+    "Sneaky",
+    "Ranged Fighter",
+    "Strategic",
+    "Intelligent",
+    "Popular",
+    "Healer",
+    "Tracker",
+    "Coward",
+]
+
 
 class Tribute:
     name: str
@@ -21,33 +34,40 @@ class Tribute:
         district: int,
         rank: int,
         trait: list[str] | None = None,
-        enemies: list[Tribute] = [],
-        allies: list[Tribute] = [],
         hunger: int = 12,
         thirst: int = 12,
         health: int = 12,
         coords: list[int] | None = None,
     ):
+        """
+        Create a new Tribute
+
+        Parameters
+        ----------
+        name : str
+            The tribute's name.
+        district : int
+            District that the tribute is part of.
+        rank : int
+            The tribute's fighting rank.
+        trait : list[str], optional
+            A list of traits to assign to the tribute. Chooses a 1-3 random traits.
+        hunger : int, default: 12
+            The tribute's init.
+        thirst : int, default: 12
+            The tribute's initial hydration level.
+        health : int, default: 12
+            The tribute's initial health.
+        coords : list[int], optional
+            The tribute's position.
+        """
         self.name = name
         self.district = district
         self.rank = rank
-        # Available non-career traits
-        available_traits = [
-            "Strong",
-            "Hunter",
-            "Sneaky",
-            "Ranged Fighter",
-            "Strategic",
-            "Intelligent",
-            "Popular",
-            "Healer",
-            "Tracker",
-            "Coward",
-        ]
 
         # Determine base traits from the provided argument (None -> random)
         if trait is None:
-            traits = random.sample(available_traits, k=random.randint(1, 3))
+            traits = random.sample(TRIBUTE_TRAITS, k=random.randint(1, 3))
         elif isinstance(trait, str):
             traits = [trait]
         else:
@@ -66,8 +86,8 @@ class Tribute:
 
         self.trait = unique_traits
 
-        self.enemies = enemies
-        self.allies = allies
+        self.enemies: list[Tribute] = []
+        self.allies: list[Tribute] = []
         self.hunger = hunger
         self.thirst = thirst
         self._health = health
@@ -96,6 +116,7 @@ class Tribute:
 
         return string
 
+    # Health
     @property
     def health(self) -> float:
         return self._health
@@ -118,6 +139,31 @@ class Tribute:
 
     def kill(self):
         self.set_health(0)
+
+    # Alliances and enemies management
+    def add_enemy(self, other: Tribute) -> None:
+        if other in self.enemies:
+            return
+        
+        if other in self.allies:
+            self.allies.remove(other)
+
+        self.enemies += [other]
+
+    def add_ally(self, other: Tribute) -> None:
+        if other in self.allies:
+            return
+        
+        if other in self.enemies:
+            self.enemies.remove(other)
+
+        self.allies += [other]
+
+    def is_allied_with(self, other: Tribute) -> bool:
+        return other in self.allies
+
+    def is_enemies_with(self, other: Tribute) -> bool:
+        return other in self.enemies
 
     @property
     def fighting_score(self) -> float:
