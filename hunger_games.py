@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 
-from events import *
 from gamemaker import GameMaker
 from tribute import Tribute
 
