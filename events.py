@@ -49,6 +49,23 @@ class EventFight(EventBase):
                 f" - {player.name} (rank: {player.rank}, health: {player.health}, fighting score: {player.fighting_score})"
             )
 
+        # If they are both allied, they don't fight
+        if players[0].is_allied_with(players[1]) and players[1].is_allied_with(players[0]):
+            print("But they are allies, so they don't fight!")
+            return players
+
+        # If only one is allied and the other isn't, it's a betrayal!
+        betrayer, betrayed = None, None
+        if players[0].is_allied_with(players[1]) and not players[1].is_allied_with(players[0]):
+            betrayer, betrayed = players[1], players[0]
+        elif players[1].is_allied_with(players[0]) and not players[0].is_allied_with(players[1]):
+            betrayer, betrayed = players[0], players[1]
+        if betrayer is not None and betrayed is not None:
+            # They become enemies, and the betrayed player takes damage.
+            print(f"{betrayer.name} betrayed {betrayed.name}!")
+            betrayed.add_enemy(betrayer)
+            betrayed.adjust_health(-1)
+
         # Choose who is strongest
         if players[0].fighting_score == players[1].fighting_score:
             print("It was a draw!")
@@ -112,6 +129,28 @@ class EventFight(EventBase):
             loser.equipment = []
 
         return players
+
+
+class EventAlly(EventBase):
+    num_participants = 2
+
+    def execute(self) -> list[Tribute]:
+        tribute1, tribute2 = random.sample(self.tributes, k=self.num_participants)
+        print(f"{tribute1.name} and {tribute2.name} have become mutual allies!")
+        tribute1.add_ally(tribute2)
+        tribute2.add_ally(tribute1)
+        return [tribute1, tribute2]
+
+
+class EventEnemy(EventBase):
+    num_participants = 2
+
+    def execute(self) -> list[Tribute]:
+        tribute1, tribute2 = random.sample(self.tributes, k=self.num_participants)
+        print(f"{tribute1.name} and {tribute2.name} have become mutual enemies!")
+        tribute1.add_enemy(tribute2)
+        tribute2.add_enemy(tribute1)
+        return [tribute1, tribute2]
 
 
 class EventMutts(EventBase):
