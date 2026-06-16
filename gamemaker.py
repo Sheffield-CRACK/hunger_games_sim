@@ -12,7 +12,7 @@ from events import (
     EventMutts,
     EventSponsorGift,
     EventUseEquipment,
-    EventExposure
+    EventExposure,
     EventBloodbath,
     EventForage,
 )
@@ -52,7 +52,7 @@ class GameMaker:
             EventGetEquipment,
             EventUseEquipment,
             EventSponsorGift,
-            EventExposure
+            EventExposure,
             EventForage,
         ]
         self.day = 0
@@ -130,7 +130,7 @@ class GameMaker:
 
             # execute bloodbath first on day 1
             EventBloodbath(self, self.tributes).execute()
-            
+
             print("Tributes scatter from the cornucopia...")
 
             # Now progress time (movement) after events on day 1
