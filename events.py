@@ -319,7 +319,8 @@ class EventSponsorGift(EventBase):
     ]
 
     def execute(self) -> list[Tribute]:
-        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        weights = [3 if "Popular" in tribute.trait else 1 for tribute in self.tributes]
+        tribute = random.choices(self.tributes, weights=weights, k=1)[0]
         gift = random.choice(self.possible_gifts)
         gift = deepcopy(gift)
         print(f"{tribute.name} received a sponsor gift: {gift}!")
