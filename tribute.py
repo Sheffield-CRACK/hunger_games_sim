@@ -26,6 +26,7 @@ class Tribute:
     hunger: float
     thirst: float
     _health: float
+    comfort: float
     coords: list[int]
 
     def __init__(
@@ -37,6 +38,7 @@ class Tribute:
         hunger: int = 12,
         thirst: int = 12,
         health: int = 12,
+        comfort: int = 0,
         coords: list[int] | None = None,
     ):
         """
@@ -91,11 +93,12 @@ class Tribute:
         self.hunger = hunger
         self.thirst = thirst
         self._health = health
+        self.comfort = comfort
         self.coords = [0, 0] if coords is None else coords
         self.equipment = []
 
     def __str__(self) -> str:
-        string = f"{self.name} ({self.hunger}/{self.thirst}/{self.health}, {self.fighting_score})"
+        string = f"{self.name} ({self.hunger}/{self.thirst}/{self.health}/{self.comfort}, {self.fighting_score})"
         string += f", {self.coords}\n"
 
         # Traits

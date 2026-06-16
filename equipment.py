@@ -4,6 +4,7 @@ class Equipment:
     thirst_bonus: int
     health_bonus: int
     fighting_bonus: int
+    comfort_bonus: int
     charges: int
 
     def __init__(
@@ -13,6 +14,7 @@ class Equipment:
         thirst_bonus: int = 0,
         health_bonus: int = 0,
         fighting_bonus: int = 0,
+        comfort_bonus: int = 0,
         charges: int = -1,
     ):
         self.name = name
@@ -20,6 +22,7 @@ class Equipment:
         self.thirst_bonus = thirst_bonus
         self.health_bonus = health_bonus
         self.fighting_bonus = fighting_bonus
+        self.comfort_bonus = comfort_bonus
         self.charges = charges
 
     def __repr__(self) -> str:
