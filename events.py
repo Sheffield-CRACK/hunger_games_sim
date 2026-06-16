@@ -15,35 +15,21 @@ class EventBase(ABC):
         self.tributes = tributes
 
     @abstractmethod
-    def execute(self) -> list[Tribute]:
-        ...
+    def execute(self) -> list[Tribute]: ...
 
 
 class EventFight(EventBase):
     num_participants = 2
 
     def execute(self) -> list[Tribute]:
-        # Group tributes by location
-        location_groups = {}
-        for tribute in self.tributes:
-            coords_key = tuple(tribute.coords)
-            if coords_key not in location_groups:
-                location_groups[coords_key] = []
-            location_groups[coords_key].append(tribute)
-
-        # Find locations with at least 2 tributes
-        valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
-
-        if not valid_locations:
-            return []
+        # TODO: This should be in the GameMaker class, not here.
+        # Instead of picking events for the tributes remaining, we should pick
+        # a location with tributes in it, then pick random events for them.
 
         print("A fight is happening!")
 
-        # Pick a random location with multiple tributes
-        fight_location = random.choice(valid_locations)
-        players = random.sample(fight_location, k=self.num_participants)
-
         print("Fighting between:")
+        players = random.sample(self.tributes, k=self.num_participants)
         for player in players:
             print(
                 f" - {player.name} (rank: {player.rank}, health: {player.health}, fighting score: {player.fighting_score})"
@@ -167,13 +153,9 @@ class EventMutts(EventBase):
     def execute(self) -> list[Tribute]:
 
         mutt = random.choice(self.mutts_list)
-        mutt_zone = [random.randint(-2, 2), random.randint(-2, 2)]
-        print(f"{mutt.capitalize()} have been released into area {mutt_zone}!")
+        print(f"{mutt.capitalize()} have been released!")
 
-        tributes = [tribute for tribute in self.tributes if tribute.coords == mutt_zone]
-        if len(tributes) == 0:
-            print("But nobody is there womp womp")
-        for tribute in tributes:
+        for tribute in self.tributes:
             d6 = random.randint(1, 6)
 
             if d6 in [1]:
@@ -182,17 +164,21 @@ class EventMutts(EventBase):
                 tribute.kill()
             if d6 in [2, 3]:
                 # severe injury
-                tribute.adjust_health(-5)
                 print(f"{tribute.name} was severely wounded by the {mutt}!")
+                tribute.adjust_health(-5)
             if d6 in [4, 5]:
                 # wounded!
-                tribute.adjust_health(-3)
                 print(f"{tribute.name} was slightly wounded by the {mutt}!")
+                tribute.adjust_health(-3)
             if d6 in [6]:
                 # escaped!
-                tribute.adjust_health(-1)
                 print(f"{tribute.name} escaped the {mutt}!")
-        return tributes
+                tribute.adjust_health(-1)
+
+        if all(tribute.is_dead for tribute in self.tributes):
+            print("All tributes were killed womp womp")
+
+        return self.tributes
 
 
 class EventFood(EventBase):
@@ -289,7 +275,16 @@ class EventUseEquipment(EventBase):
             if equipment.fighting_bonus > 0:
                 continue
 
-            print(f"{tribute.name} is using {equipment}).")
+            if equipment.name == "First Aid Kit" and 'Healer' in tribute.trait:
+                print(f"{tribute.name} is a Healer and used {equipment.name} more effectively!")
+                keep_charge = random.random() < 0.6
+                if keep_charge:
+                    print(f"{tribute.name} was so efficient the kept the {equipment.name} for another use!")
+                    equipment.charges += 1
+                else:
+                    print(f"{tribute.name} used up the {equipment.name}.")
+            else:
+                print(f"{tribute.name} is using {equipment}.")
 
             # Apply equipment effects
             tribute.hunger += equipment.hunger_bonus
@@ -319,13 +314,14 @@ class EventSponsorGift(EventBase):
     ]
 
     def execute(self) -> list[Tribute]:
-        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        weights = [3 if "Popular" in tribute.trait else 1 for tribute in self.tributes]
+        tribute = random.choices(self.tributes, weights=weights, k=1)[0]
         gift = random.choice(self.possible_gifts)
         gift = deepcopy(gift)
         print(f"{tribute.name} received a sponsor gift: {gift}!")
         tribute.equipment.append(gift)
         return [tribute]
-    
+
 
 class EventExposure(EventBase):
     num_participants = 1
@@ -362,3 +358,97 @@ class EventExposure(EventBase):
 
         return [tribute]
 
+
+class EventBloodbath(EventBase):
+    num_participants = -1  # All tributes participate
+
+    def execute(self) -> list[Tribute]:
+        print("The Bloodbath has begun at the Cornucopia!")
+        for tribute in self.tributes:
+            # Randomly assign a starting position in the arena
+            tribute.coords = [random.randint(0, 0), random.randint(0, 0)]  # all tributes start at cornucopia
+
+        # Track initial number of tributes so we can end the event early
+        initial_count = len(self.tributes)
+
+        # Randomly determine if each tribute is killed in the bloodbath
+        for tribute in self.tributes:
+            if "Career" in tribute.trait:
+                if random.random() < 0.1:  # 10% chance of being killed
+                    print(f"{tribute.name} was killed in the bloodbath!")
+                    tribute.kill()
+                else:
+                    print(f"{tribute.name} survived the bloodbath!")
+            else:
+                if random.random() < 0.3:  # 30% chance of being killed
+                    print(f"{tribute.name} was killed in the bloodbath!")
+                    tribute.kill()
+                else:
+                    print(f"{tribute.name} survived the bloodbath!")
+
+            # If living tributes drop to half (or less) of initial, end the bloodbath early
+            alive_count = sum(1 for t in self.tributes if not t.is_dead)
+            if alive_count <= initial_count / 2:
+                break
+
+        return self.tributes
+
+class EventForage(EventBase):
+    num_participants = 1
+
+    possible_items = {
+        "food": Equipment(name="food", hunger_bonus=2, charges=1),
+        "meat": Equipment(name="meat", hunger_bonus=3, charges=1),
+        "poison berries": Equipment(name="poison berries", health_bonus=-3, charges=1),
+        "medicinal herbs": Equipment(name="medicinal herbs", health_bonus=3, charges=1),
+    }
+
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f"{tribute.name} is foraging for resources!")
+
+        found_items = ["food", "nothing"]
+        weights = [0.5, 0.5]
+
+        if "Healer" in tribute.trait:
+            found_items.append("medicinal herbs")
+            weights = [0.3, 0.1, 0.6]
+        elif "Hunter" in tribute.trait:
+            found_items.append("meat")
+            weights = [0.4, 0.05, 0.55]
+        elif "Intelligent" in tribute.trait:
+            found_items.append("poison berries")
+            weights = [0.6, 0.35, 0.05]
+        else:
+            found_items.append("poison berries")
+            weights = [0.6, 0.35, 0.1]
+
+        chosen_item = random.choices(found_items, weights=weights, k=1)[0]
+        print(f"{tribute.name} found {chosen_item} while foraging!")
+
+        # Apply effects based on what they found
+        if chosen_item == "food":
+            tribute.hunger += 2
+            print(f"{tribute.name} found {chosen_item} while foraging!")
+            print(f"{tribute.name} ate the food and gained 2 hunger points!")
+        elif chosen_item == "medicinal herbs":
+            if "First aid kit" in tribute.inventory:
+                print(f"{tribute.name} found {chosen_item} while foraging!")
+                print(f"{tribute.name} added the medicinal herbs to their First Aid Kit and gained an extra use!")
+                tribute.inventory["First aid kit"].charges += 1
+            else:
+                print(f"{tribute.name} found {chosen_item} while foraging!")
+                tribute.adjust_health(+3)
+                print(f"{tribute.name} used the medicinal herbs and gained 3 health points!")
+        elif chosen_item == "meat":
+            print(f"{tribute.name} found {chosen_item} while foraging!")
+            tribute.hunger += self.possible_items["meat"].hunger_bonus
+            print(f"{tribute.name} ate the meat and gained {self.possible_items['meat'].hunger_bonus} hunger points!")
+        elif chosen_item == "poison berries":
+            print(f"{tribute.name} found {chosen_item} while foraging!")
+            tribute.adjust_health(self.possible_items["poison berries"].health_bonus)
+            print(f"{tribute.name} ate the poison berries and lost {-self.possible_items['poison berries'].health_bonus} health points!")
+        else:
+            print(f"{tribute.name} found nothing while foraging!")
+
+        return [tribute]
