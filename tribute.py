@@ -86,8 +86,8 @@ class Tribute:
 
         self.trait = unique_traits
 
-        self.enemies: list[Tribute] = []
-        self.allies: list[Tribute] = []
+        self._enemies: list[Tribute] = []
+        self._allies: list[Tribute] = []
         self.hunger = hunger
         self.thirst = thirst
         self._health = health
@@ -113,6 +113,27 @@ class Tribute:
                 equipment_string += f"{equipment}, "
             equipment_string = equipment_string[:-2]  # remove trailing comma
             string += f"   - {equipment_string}\n"
+
+        # Allies and enemies
+        string += " - Allies:\n"
+        if len(self.allies) == 0:
+            string += "   - None\n"
+        else:
+            allies_string = ""
+            for ally in self.allies:
+                allies_string += f"{ally.name}, "
+            allies_string = allies_string[:-2]  # remove trailing comma
+            string += f"   - {allies_string}\n"
+
+        string += " - Enemies:\n"
+        if len(self.enemies) == 0:
+            string += "   - None\n"
+        else:
+            enemies_string = ""
+            for enemy in self.enemies:
+                enemies_string += f"{enemy.name}, "
+            enemies_string = enemies_string[:-2]  # remove trailing comma
+            string += f"   - {enemies_string}\n"
 
         return string
 
@@ -141,29 +162,63 @@ class Tribute:
         self.set_health(0)
 
     # Alliances and enemies management
-    def add_enemy(self, other: Tribute) -> None:
-        if other in self.enemies:
-            return
-        
-        if other in self.allies:
-            self.allies.remove(other)
+    @property
+    def allies(self) -> list[Tribute]:
+        return [tribute for tribute in self._allies if tribute.is_alive]
 
-        self.enemies += [other]
+    @allies.setter
+    def allies(self, new_allies: list[Tribute]) -> None:
+        for ally in new_allies:
+            self.add_ally(ally)
 
     def add_ally(self, other: Tribute) -> None:
-        if other in self.allies:
+        if other == self:
             return
-        
-        if other in self.enemies:
-            self.enemies.remove(other)
+        if other in self._allies:
+            return
 
-        self.allies += [other]
+        if other in self._enemies:
+            self._enemies.remove(other)
+
+        self._allies += [other]
+        print(f"{self.name} now sees {other.name} as an ally!")
+
+    def remove_ally(self, other: Tribute) -> None:
+        if other in self._allies:
+            self._allies.remove(other)
+        print(f"{self.name} no longer sees {other.name} as an ally!")
+
+    @property
+    def enemies(self) -> list[Tribute]:
+        return [tribute for tribute in self._enemies if tribute.is_alive]
+
+    @enemies.setter
+    def enemies(self, new_enemies: list[Tribute]) -> None:
+        for enemy in new_enemies:
+            self.add_enemy(enemy)
+
+    def add_enemy(self, other: Tribute) -> None:
+        if other == self:
+            return
+        if other in self._enemies:
+            return
+
+        if other in self._allies:
+            self._allies.remove(other)
+
+        self._enemies += [other]
+        print(f"{self.name} now sees {other.name} as an enemy!")
+
+    def remove_enemy(self, other: Tribute) -> None:
+        if other in self._enemies:
+            self._enemies.remove(other)
+        print(f"{self.name} no longer sees {other.name} as an enemy!")
 
     def is_allied_with(self, other: Tribute) -> bool:
-        return other in self.allies
+        return other in self._allies
 
     def is_enemies_with(self, other: Tribute) -> bool:
-        return other in self.enemies
+        return other in self._enemies
 
     @property
     def fighting_score(self) -> float:
