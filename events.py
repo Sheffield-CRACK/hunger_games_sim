@@ -23,6 +23,10 @@ class EventFight(EventBase):
     num_participants = 2
 
     def execute(self) -> list[Tribute]:
+        # TODO: This should be in the GameMaker class, not here.
+        # Instead of picking events for the tributes remaining, we should pick
+        # a location with tributes in it, then pick random events for them.
+
         # Group tributes by location
         location_groups = {}
         for tribute in self.tributes:
@@ -35,6 +39,7 @@ class EventFight(EventBase):
         valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
 
         if not valid_locations:
+            print("DEBUG: No valid locations for fight, skipping event...")
             return []
 
         print("A fight is happening!")
