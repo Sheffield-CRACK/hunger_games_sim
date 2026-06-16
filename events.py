@@ -294,6 +294,7 @@ class EventUseEquipment(EventBase):
                 keep_charge = random.random() < 0.6
                 if keep_charge:
                     print(f"{tribute.name} was so efficient the kept the {equipment.name} for another use!")
+                    equipment.charges += 1
                 else:
                     print(f"{tribute.name} used up the {equipment.name}.")
             else:
@@ -368,3 +369,63 @@ class EventBloodbath(EventBase):
                 break
 
         return self.tributes
+
+class EventForage(EventBase):
+    num_participants = 1
+
+    possible_items = {
+        "food": Equipment(name="food", hunger_bonus=2, charges=1),
+        "meat": Equipment(name="meat", hunger_bonus=3, charges=1),
+        "poison berries": Equipment(name="poison berries", health_bonus=-3, charges=1),
+        "medicinal herbs": Equipment(name="medicinal herbs", health_bonus=3, charges=1),
+    }
+
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f"{tribute.name} is foraging for resources!")
+
+        found_items = ["food", "nothing"]
+        weights = [0.5, 0.5]
+
+        if "Healer" in tribute.trait:
+            found_items.append("medicinal herbs")
+            weights = [0.3, 0.1, 0.6]
+        elif "Hunter" in tribute.trait:
+            found_items.append("meat")
+            weights = [0.4, 0.05, 0.55]
+        elif "Intelligent" in tribute.trait:
+            found_items.append("poison berries")
+            weights = [0.6, 0.35, 0.05]
+        else:
+            found_items.append("poison berries")
+            weights = [0.6, 0.35, 0.1]
+
+        chosen_item = random.choices(found_items, weights=weights, k=1)[0]
+        print(f"{tribute.name} found {chosen_item} while foraging!")
+
+        # Apply effects based on what they found
+        if chosen_item == "food":
+            tribute.hunger += 2
+            print(f"{tribute.name} found {chosen_item} while foraging!")
+            print(f"{tribute.name} ate the food and gained 2 hunger points!")
+        elif chosen_item == "medicinal herbs":
+            if "First aid kit" in tribute.inventory:
+                print(f"{tribute.name} found {chosen_item} while foraging!")
+                print(f"{tribute.name} added the medicinal herbs to their First Aid Kit and gained an extra use!")
+                tribute.inventory["First aid kit"].charges += 1
+            else:
+                print(f"{tribute.name} found {chosen_item} while foraging!")
+                tribute.adjust_health(+3)
+                print(f"{tribute.name} used the medicinal herbs and gained 3 health points!")
+        elif chosen_item == "meat":
+            print(f"{tribute.name} found {chosen_item} while foraging!")
+            tribute.hunger += self.possible_items["meat"].hunger_bonus
+            print(f"{tribute.name} ate the meat and gained {self.possible_items['meat'].hunger_bonus} hunger points!")
+        elif chosen_item == "poison berries":
+            print(f"{tribute.name} found {chosen_item} while foraging!")
+            tribute.adjust_health(self.possible_items["poison berries"].health_bonus)
+            print(f"{tribute.name} ate the poison berries and lost {-self.possible_items['poison berries'].health_bonus} health points!")
+        else:
+            print(f"{tribute.name} found nothing while foraging!")
+
+        return [tribute]

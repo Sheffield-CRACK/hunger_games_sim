@@ -13,6 +13,7 @@ from events import (
     EventSponsorGift,
     EventUseEquipment,
     EventBloodbath,
+    EventForage,
 )
 from tribute import Tribute
 
@@ -47,6 +48,7 @@ class GameMaker:
             EventGetEquipment,
             EventUseEquipment,
             EventSponsorGift,
+            EventForage,
         ]
         self.day = 0
         self.dead_tributes: list[tuple[Tribute, int]] = []
