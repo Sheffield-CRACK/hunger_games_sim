@@ -60,31 +60,48 @@ class GameMaker:
             print(tribute)
 
     def execute_events(self):
-        # TODO: Should pick location first, then do events for tributes in that location
-        remaining_tributes = self.living_tributes.copy()
-        while len(remaining_tributes) > 0:
+        # Group tributes by location
+        location_groups = {}
+        for tribute in self.tributes:
+            coords_key = tuple(tribute.coords)
+            if coords_key not in location_groups:
+                location_groups[coords_key] = []
+            location_groups[coords_key].append(tribute)
+
+        for location, tributes_at_location in location_groups.items():
             print("~~~~~~~~~~~~~~~")
-            # select a random event that has enough participants remaining
-            valid_events = [
-                event for event in self.events if len(remaining_tributes) >= event.num_participants
-            ]
+            print(f"Location {location}:")
+            print(
+                f"{len(tributes_at_location)} "
+                f"tribute{'s' if len(tributes_at_location) != 1 else ''} present:"
+                f" {', '.join([tribute.name for tribute in tributes_at_location])}"
+            )
+            remaining_tributes = tributes_at_location.copy()
+            while len(remaining_tributes) > 0:
+                # select a random event that has enough participants remaining
+                valid_events = [
+                    event
+                    for event in self.events
+                    if len(remaining_tributes) >= event.num_participants
+                ]
 
-            # randomly select a valid event type
-            event = random.choice(valid_events)
+                # randomly select a valid event type
+                event = random.choice(valid_events)
 
-            # select tributes for this event
-            if event.num_participants == -1:
-                # all remaining tributes participate
-                selected_tributes = remaining_tributes.copy()
-            else:
-                selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
+                # select tributes for this event
+                if event.num_participants == -1:
+                    # all remaining tributes participate
+                    selected_tributes = remaining_tributes.copy()
+                else:
+                    selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
-            # execute the event
-            affected_tributes = event(self, selected_tributes).execute()
+                # execute the event
+                affected_tributes = event(self, selected_tributes).execute()
 
-            # remove selected tributes from remaining tributes
-            for tribute in affected_tributes:
-                remaining_tributes.remove(tribute)
+                # remove selected tributes from remaining tributes
+                for tribute in affected_tributes:
+                    remaining_tributes.remove(tribute)
+        print("~~~~~~~~~~~~~~~")
 
     def progress_time(self) -> bool:
         self.day += 1
@@ -106,7 +123,6 @@ class GameMaker:
             # execute events first on day 1
             self.execute_events()
 
-            print("~~~~~~~~~~~~~~~")
             print("Tributes scatter from the cornucopia...")
 
             # Now progress time (movement) after events on day 1
@@ -146,8 +162,6 @@ class GameMaker:
 
             # execute events after movement on day 2+
             self.execute_events()
-
-        print("~~~~~~~~~~~~~~~")
 
         # Print current living tributes
         self.print_tributes()
