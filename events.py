@@ -308,9 +308,9 @@ class EventSponsorGift(EventBase):
         Equipment(name="Medicine", health_bonus=8, charges=1),
         Equipment(name="Wine", thirst_bonus=5, charges=3),
         Equipment(name="Bread", hunger_bonus=4, charges=4),
-        Equipment(name="Spile", thirst_bonus=1, charges=-1),
+        Equipment(name="Spile", thirst_bonus=1, charges=-1, comfort_bonus=-1),
         Equipment(name="Water Purifier", charges=3),
-        Equipment(name="Fire starter kit", charges=3),
+        Equipment(name="Fire starter kit", charges=3, comfort_bonus=3),
     ]
 
     def execute(self) -> list[Tribute]:
@@ -321,6 +321,43 @@ class EventSponsorGift(EventBase):
         print(f"{tribute.name} received a sponsor gift: {gift}!")
         tribute.equipment.append(gift)
         return [tribute]
+
+
+class EventExposure(EventBase):
+    num_participants = 1
+
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+
+        if random.random() < 0.5:
+            print(f"{tribute.name} is exposed to intense heat!")
+            tribute.comfort += 1
+            if tribute.comfort > 0:
+                protected = False
+                for equipment in tribute.equipment:
+                    if equipment.comfort_bonus < 0:
+                        print(f"{tribute.name} is protected from the heat by {equipment.name}!")
+                        tribute.comfort += equipment.comfort_bonus
+                        protected = True
+                        return [tribute]
+                if not protected:
+                    tribute.adjust_health(-1)
+        else:
+            print(f"{tribute.name} is exposed to bitter cold!")
+            tribute.comfort -= 1
+            if tribute.comfort < 0:
+                protected = False
+                for equipment in tribute.equipment:
+                    if equipment.comfort_bonus > 0:
+                        print(f"{tribute.name} is protected from the cold by {equipment.name}!")
+                        tribute.comfort += equipment.comfort_bonus
+                        protected = True
+                        return [tribute]
+                if not protected:
+                    tribute.adjust_health(-1)
+
+        return [tribute]
+
 
 class EventBloodbath(EventBase):
     num_participants = -1  # All tributes participate

@@ -12,6 +12,7 @@ from events import (
     EventMutts,
     EventSponsorGift,
     EventUseEquipment,
+    EventExposure
     EventBloodbath,
     EventForage,
 )
@@ -31,11 +32,14 @@ class GameMaker:
             Equipment(name="Sword", fighting_bonus=3, charges=-1): 1,
             Equipment(name="Axe", fighting_bonus=2, charges=-1): 3,
             Equipment(name="Trident", fighting_bonus=3, charges=-1): 1,
+            Equipment(name="Tarp", comfort_bonus=2, charges=-1): 3,
+            Equipment(name="Windbreaker", comfort_bonus=2, charges=-1): 2,
+            Equipment(name="Socks", comfort_bonus=1, charges=-1): 3,
             # Exhaustible equipment
             Equipment(name="Bow and Arrows", fighting_bonus=3, charges=6): 2,
             Equipment(name="Blowgun", fighting_bonus=1, charges=12): 6,
             Equipment(name="First Aid Kit", health_bonus=5, charges=1): 3,
-            Equipment(name="Canteen", thirst_bonus=5, charges=3): 3,
+            Equipment(name="Canteen", thirst_bonus=5, charges=3, comfort_bonus=-1): 3,
             Equipment(name="Rations", hunger_bonus=2, charges=2): 3,
         }
         self.events = [
@@ -48,6 +52,7 @@ class GameMaker:
             EventGetEquipment,
             EventUseEquipment,
             EventSponsorGift,
+            EventExposure
             EventForage,
         ]
         self.day = 0
