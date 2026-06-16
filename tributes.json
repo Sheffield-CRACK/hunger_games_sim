@@ -1,77 +1,184 @@
 [
-    {
-        "name": "Katniss Everdeen",
-        "district": 12,
-        "rank": 12
-    },
-    {
-        "name": "Peeta Mellark",
-        "district": 12,
-        "rank": 6
-    },
-    {
-        "name": "Gale Hawthorne",
-        "district": 12,
-        "rank": 2
-    },
-    {
-        "name": "Haymitch Abernathy",
-        "district": 12,
-        "rank": 1
-    },
-    {
-        "name": "Effie Trinket",
-        "district": 12,
-        "rank": 3
-    },
-    {
-        "name": "Cinna",
-        "district": 12,
-        "rank": 4
-    },
-    {
-        "name": "Prim Everdeen",
-        "district": 12,
-        "rank": 5
-    },
-    {
-        "name": "Finnick Odair",
-        "district": 4,
-        "rank": 8
-    },
-    {
-        "name": "Johanna Mason",
-        "district": 7,
-        "rank": 9
-    },
-    {
-        "name": "Clove",
-        "district": 2,
-        "rank": 10
-    },
-    {
-        "name": "Cato",
-        "district": 2,
-        "rank": 11
-    },
-    {
-        "name": "Rue",
-        "district": 11,
-        "rank": 7
-    },
-    {
-        "name": "Thresh",
-        "district": 11,
-        "rank": 13
-    },
-    {
-        "name": "Foxface",
-        "district": 5,
-        "rank": 14
-    },
-    {
-        "name": "Marvel",
-        "district": 1,
-        "rank": 15
-    }
+  {
+    "name": "a",
+    "district": 1,
+    "traits": [
+      "Career",
+      "Hunter",
+      "Ranged Fighter",
+      "Coward"
+    ],
+    "alliances": [
+      "b",
+      "i",
+      "j",
+      "l"
+    ],
+    "rank": 3
+  },
+  {
+    "name": "b",
+    "district": 1,
+    "traits": [
+      "Career",
+      "Strong"
+    ],
+    "alliances": [
+      "i"
+    ],
+    "rank": 4
+  },
+  {
+    "name": "c",
+    "district": 2,
+    "traits": [
+      "Career",
+      "Intelligent"
+    ],
+    "alliances": [
+      "a",
+      "b",
+      "d",
+      "e",
+      "f",
+      "h",
+      "i"
+    ],
+    "rank": 6
+  },
+  {
+    "name": "d",
+    "district": 2,
+    "traits": [
+      "Career",
+      "Strong",
+      "Strategic",
+      "Tracker"
+    ],
+    "alliances": [
+      "g",
+      "i",
+      "j",
+      "k"
+    ],
+    "rank": 9
+  },
+  {
+    "name": "e",
+    "district": 3,
+    "traits": [
+      "Ranged Fighter",
+      "Healer"
+    ],
+    "alliances": [],
+    "rank": 10
+  },
+  {
+    "name": "f",
+    "district": 3,
+    "traits": [
+      "Hunter",
+      "Sneaky",
+      "Intelligent",
+      "Healer"
+    ],
+    "alliances": [
+      "c",
+      "e",
+      "g",
+      "i",
+      "l"
+    ],
+    "rank": 1
+  },
+  {
+    "name": "g",
+    "district": 4,
+    "traits": [
+      "Career",
+      "Intelligent"
+    ],
+    "alliances": [
+      "d",
+      "l"
+    ],
+    "rank": 6
+  },
+  {
+    "name": "h",
+    "district": 4,
+    "traits": [
+      "Career",
+      "Sneaky"
+    ],
+    "alliances": [
+      "b",
+      "e",
+      "i"
+    ],
+    "rank": 10
+  },
+  {
+    "name": "i",
+    "district": 5,
+    "traits": [
+      "Healer"
+    ],
+    "alliances": [
+      "c",
+      "h"
+    ],
+    "rank": 1
+  },
+  {
+    "name": "j",
+    "district": 5,
+    "traits": [
+      "Strong",
+      "Sneaky",
+      "Strategic",
+      "Healer",
+      "Tracker"
+    ],
+    "alliances": [
+      "b",
+      "c",
+      "d",
+      "g",
+      "h",
+      "k"
+    ],
+    "rank": 3
+  },
+  {
+    "name": "k",
+    "district": 6,
+    "traits": [
+      "Sneaky"
+    ],
+    "alliances": [
+      "b",
+      "c",
+      "d",
+      "e",
+      "g",
+      "j"
+    ],
+    "rank": 6
+  },
+  {
+    "name": "l",
+    "district": 6,
+    "traits": [
+      "Strategic",
+      "Healer"
+    ],
+    "alliances": [
+      "c",
+      "d",
+      "f",
+      "i"
+    ],
+    "rank": 5
+  }
 ]

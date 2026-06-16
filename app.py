@@ -612,7 +612,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         if mode != "Manual":
             return ui.TagList(ui.input_action_button("generate_traits", "Generate random traits"))
 
-        TRAIT_CHOICES = ["Brave", "Cunning", "Strong", "Stealthy", "Charismatic", "Resourceful", "Agile"]
+        TRAIT_CHOICES = ["Strong", "Hunter", "Sneaky", "Ranged Fighter", "Strategic", "Intelligent", "Popular", "Healer", "Tracker", "Coward"]
         names, districts = _saved_tribute_names_and_districts(saved)
         if not names:
             return ui.HTML("<p>No tributes available.</p>")
@@ -729,7 +729,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             ui.notification_show("No saved tributes to generate traits.", type="error", duration=2)
             return
 
-        TRAIT_CHOICES = ["Brave", "Cunning", "Strong", "Stealthy", "Charismatic", "Resourceful", "Agile"]
+        TRAIT_CHOICES = ["Strong", "Hunter", "Sneaky", "Ranged Fighter", "Strategic", "Intelligent", "Popular", "Healer", "Tracker", "Coward"]
         p_trait = 0.25
         names, districts = _saved_tribute_names_and_districts(saved)
 
