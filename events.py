@@ -289,7 +289,15 @@ class EventUseEquipment(EventBase):
             if equipment.fighting_bonus > 0:
                 continue
 
-            print(f"{tribute.name} is using {equipment}).")
+            if equipment.name == "First Aid Kit" and 'Healer' in tribute.trait:
+                print(f"{tribute.name} is a Healer and used {equipment.name} more effectively!")
+                keep_charge = random.random() < 0.6
+                if keep_charge:
+                    print(f"{tribute.name} was so efficient the kept the {equipment.name} for another use!")
+                else:
+                    print(f"{tribute.name} used up the {equipment.name}.")
+            else:
+                print(f"{tribute.name} is using {equipment}.")
 
             # Apply equipment effects
             tribute.hunger += equipment.hunger_bonus
@@ -326,3 +334,37 @@ class EventSponsorGift(EventBase):
         print(f"{tribute.name} received a sponsor gift: {gift}!")
         tribute.equipment.append(gift)
         return [tribute]
+
+class EventBloodbath(EventBase):
+    num_participants = -1  # All tributes participate
+
+    def execute(self) -> list[Tribute]:
+        print("The Bloodbath has begun at the Cornucopia!")
+        for tribute in self.tributes:
+            # Randomly assign a starting position in the arena
+            tribute.coords = [random.randint(0, 0), random.randint(0, 0)]  # all tributes start at cornucopia
+
+        # Track initial number of tributes so we can end the event early
+        initial_count = len(self.tributes)
+
+        # Randomly determine if each tribute is killed in the bloodbath
+        for tribute in self.tributes:
+            if "Career" in tribute.trait:
+                if random.random() < 0.1:  # 10% chance of being killed
+                    print(f"{tribute.name} was killed in the bloodbath!")
+                    tribute.kill()
+                else:
+                    print(f"{tribute.name} survived the bloodbath!")
+            else:
+                if random.random() < 0.3:  # 30% chance of being killed
+                    print(f"{tribute.name} was killed in the bloodbath!")
+                    tribute.kill()
+                else:
+                    print(f"{tribute.name} survived the bloodbath!")
+
+            # If living tributes drop to half (or less) of initial, end the bloodbath early
+            alive_count = sum(1 for t in self.tributes if not t.is_dead)
+            if alive_count <= initial_count / 2:
+                break
+
+        return self.tributes

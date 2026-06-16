@@ -12,6 +12,7 @@ from events import (
     EventMutts,
     EventSponsorGift,
     EventUseEquipment,
+    EventBloodbath,
 )
 from tribute import Tribute
 
@@ -81,7 +82,7 @@ class GameMaker:
             while len(remaining_tributes) > 0:
                 print("~~~~~~~~~~~~~~~")
                 # randomly select an event type
-                event = random.choice(self.events)
+                event = EventBloodbath
 
                 # check if enough tributes remain for this event
                 if len(remaining_tributes) < event.num_participants:
