@@ -15,13 +15,14 @@ class EventBase(ABC):
         self.tributes = tributes
 
     @abstractmethod
-    def execute(self): ...
+    def execute(self) -> list[Tribute]:
+        ...
 
 
 class EventFight(EventBase):
     num_participants = 2
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         # Group tributes by location
         location_groups = {}
         for tribute in self.tributes:
@@ -47,6 +48,23 @@ class EventFight(EventBase):
             print(
                 f" - {player.name} (rank: {player.rank}, health: {player.health}, fighting score: {player.fighting_score})"
             )
+
+        # If they are both allied, they don't fight
+        if players[0].is_allied_with(players[1]) and players[1].is_allied_with(players[0]):
+            print("But they are allies, so they don't fight!")
+            return players
+
+        # If only one is allied and the other isn't, it's a betrayal!
+        betrayer, betrayed = None, None
+        if players[0].is_allied_with(players[1]) and not players[1].is_allied_with(players[0]):
+            betrayer, betrayed = players[1], players[0]
+        elif players[1].is_allied_with(players[0]) and not players[0].is_allied_with(players[1]):
+            betrayer, betrayed = players[0], players[1]
+        if betrayer is not None and betrayed is not None:
+            # They become enemies, and the betrayed player takes damage.
+            print(f"{betrayer.name} betrayed {betrayed.name}!")
+            betrayed.add_enemy(betrayer)
+            betrayed.adjust_health(-1)
 
         # Choose who is strongest
         if players[0].fighting_score == players[1].fighting_score:
@@ -113,6 +131,28 @@ class EventFight(EventBase):
         return players
 
 
+class EventAlly(EventBase):
+    num_participants = 2
+
+    def execute(self) -> list[Tribute]:
+        tribute1, tribute2 = random.sample(self.tributes, k=self.num_participants)
+        print(f"{tribute1.name} and {tribute2.name} have become mutual allies!")
+        tribute1.add_ally(tribute2)
+        tribute2.add_ally(tribute1)
+        return [tribute1, tribute2]
+
+
+class EventEnemy(EventBase):
+    num_participants = 2
+
+    def execute(self) -> list[Tribute]:
+        tribute1, tribute2 = random.sample(self.tributes, k=self.num_participants)
+        print(f"{tribute1.name} and {tribute2.name} have become mutual enemies!")
+        tribute1.add_enemy(tribute2)
+        tribute2.add_enemy(tribute1)
+        return [tribute1, tribute2]
+
+
 class EventMutts(EventBase):
     num_participants = -1
     mutts_list = [
@@ -124,7 +164,7 @@ class EventMutts(EventBase):
         "feral undergrads",
     ]
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
 
         mutt = random.choice(self.mutts_list)
         mutt_zone = [random.randint(-2, 2), random.randint(-2, 2)]
@@ -158,17 +198,17 @@ class EventMutts(EventBase):
 class EventFood(EventBase):
     num_participants = 1
 
-    def execute(self):
-        tribute = random.sample(self.tributes, k=self.num_participants)
-        print(f"{tribute[0].name} found some food!")
-        tribute[0].hunger += 2
-        return tribute
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f"{tribute.name} found some food!")
+        tribute.hunger += 2
+        return [tribute]
 
 
 class EventDrink(EventBase):
     num_participants = 1
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
         print(f"{tribute.name} found some water!")
         tribute.thirst += 2
@@ -194,13 +234,13 @@ class EventDrink(EventBase):
         else:
             print(f"{tribute.name} drank from the water and stayed healthy!")
 
-        return tribute
+        return [tribute]
 
 
 class EventGetEquipment(EventBase):
     num_participants = 1
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
         valid_equipment = [
             equipment for equipment, quantity in self.gamemaker.equipment.items() if quantity > 0
@@ -236,7 +276,7 @@ class EventGetEquipment(EventBase):
 class EventUseEquipment(EventBase):
     num_participants = 1
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tributes_with_equipment = [
             tribute for tribute in self.tributes if len(tribute.equipment) > 0
         ]
@@ -278,7 +318,7 @@ class EventSponsorGift(EventBase):
         Equipment(name="Fire starter kit", charges=3),
     ]
 
-    def execute(self):
+    def execute(self) -> list[Tribute]:
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
         gift = random.choice(self.possible_gifts)
         gift = deepcopy(gift)

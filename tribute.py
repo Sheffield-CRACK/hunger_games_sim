@@ -2,6 +2,19 @@ from __future__ import annotations
 
 import random
 
+TRIBUTE_TRAITS = [
+    "Strong",
+    "Hunter",
+    "Sneaky",
+    "Ranged Fighter",
+    "Strategic",
+    "Intelligent",
+    "Popular",
+    "Healer",
+    "Tracker",
+    "Coward",
+]
+
 
 class Tribute:
     name: str
@@ -21,33 +34,40 @@ class Tribute:
         district: int,
         rank: int,
         trait: list[str] | None = None,
-        enemies: list[Tribute] = [],
-        allies: list[Tribute] = [],
         hunger: int = 12,
         thirst: int = 12,
         health: int = 12,
         coords: list[int] | None = None,
     ):
+        """
+        Create a new Tribute
+
+        Parameters
+        ----------
+        name : str
+            The tribute's name.
+        district : int
+            District that the tribute is part of.
+        rank : int
+            The tribute's fighting rank.
+        trait : list[str], optional
+            A list of traits to assign to the tribute. Chooses a 1-3 random traits.
+        hunger : int, default: 12
+            The tribute's init.
+        thirst : int, default: 12
+            The tribute's initial hydration level.
+        health : int, default: 12
+            The tribute's initial health.
+        coords : list[int], optional
+            The tribute's position.
+        """
         self.name = name
         self.district = district
         self.rank = rank
-        # Available non-career traits
-        available_traits = [
-            "Strong",
-            "Hunter",
-            "Sneaky",
-            "Ranged Fighter",
-            "Strategic",
-            "Intelligent",
-            "Popular",
-            "Healer",
-            "Tracker",
-            "Coward",
-        ]
 
         # Determine base traits from the provided argument (None -> random)
         if trait is None:
-            traits = random.sample(available_traits, k=random.randint(1, 3))
+            traits = random.sample(TRIBUTE_TRAITS, k=random.randint(1, 3))
         elif isinstance(trait, str):
             traits = [trait]
         else:
@@ -66,8 +86,8 @@ class Tribute:
 
         self.trait = unique_traits
 
-        self.enemies = enemies
-        self.allies = allies
+        self._enemies: list[Tribute] = []
+        self._allies: list[Tribute] = []
         self.hunger = hunger
         self.thirst = thirst
         self._health = health
@@ -94,8 +114,30 @@ class Tribute:
             equipment_string = equipment_string[:-2]  # remove trailing comma
             string += f"   - {equipment_string}\n"
 
+        # Allies and enemies
+        string += " - Allies:\n"
+        if len(self.allies) == 0:
+            string += "   - None\n"
+        else:
+            allies_string = ""
+            for ally in self.allies:
+                allies_string += f"{ally.name}, "
+            allies_string = allies_string[:-2]  # remove trailing comma
+            string += f"   - {allies_string}\n"
+
+        string += " - Enemies:\n"
+        if len(self.enemies) == 0:
+            string += "   - None\n"
+        else:
+            enemies_string = ""
+            for enemy in self.enemies:
+                enemies_string += f"{enemy.name}, "
+            enemies_string = enemies_string[:-2]  # remove trailing comma
+            string += f"   - {enemies_string}\n"
+
         return string
 
+    # Health
     @property
     def health(self) -> float:
         return self._health
@@ -118,6 +160,65 @@ class Tribute:
 
     def kill(self):
         self.set_health(0)
+
+    # Alliances and enemies management
+    @property
+    def allies(self) -> list[Tribute]:
+        return [tribute for tribute in self._allies if tribute.is_alive]
+
+    @allies.setter
+    def allies(self, new_allies: list[Tribute]) -> None:
+        for ally in new_allies:
+            self.add_ally(ally)
+
+    def add_ally(self, other: Tribute) -> None:
+        if other == self:
+            return
+        if other in self._allies:
+            return
+
+        if other in self._enemies:
+            self._enemies.remove(other)
+
+        self._allies += [other]
+        print(f"{self.name} now sees {other.name} as an ally!")
+
+    def remove_ally(self, other: Tribute) -> None:
+        if other in self._allies:
+            self._allies.remove(other)
+        print(f"{self.name} no longer sees {other.name} as an ally!")
+
+    @property
+    def enemies(self) -> list[Tribute]:
+        return [tribute for tribute in self._enemies if tribute.is_alive]
+
+    @enemies.setter
+    def enemies(self, new_enemies: list[Tribute]) -> None:
+        for enemy in new_enemies:
+            self.add_enemy(enemy)
+
+    def add_enemy(self, other: Tribute) -> None:
+        if other == self:
+            return
+        if other in self._enemies:
+            return
+
+        if other in self._allies:
+            self._allies.remove(other)
+
+        self._enemies += [other]
+        print(f"{self.name} now sees {other.name} as an enemy!")
+
+    def remove_enemy(self, other: Tribute) -> None:
+        if other in self._enemies:
+            self._enemies.remove(other)
+        print(f"{self.name} no longer sees {other.name} as an enemy!")
+
+    def is_allied_with(self, other: Tribute) -> bool:
+        return other in self._allies
+
+    def is_enemies_with(self, other: Tribute) -> bool:
+        return other in self._enemies
 
     @property
     def fighting_score(self) -> float:
