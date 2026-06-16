@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import random
 
 from gamemaker import GameMaker
 from tribute import Tribute
@@ -15,19 +14,19 @@ if __name__ == "__main__":
 
     tributes: list[Tribute] = []
     for d in tributes_data:
-        tributes += [
-            Tribute(
-                name=d["name"],
-                district=d["district"],
-                rank=d["rank"],
-                trait=d.get("trait"),  # if not given, set to None
-            )
-        ]
+        tribute = Tribute(
+            name=d["name"],
+            district=d["district"],
+            rank=d["rank"],
+            trait=d.get("trait"),  # if not given, set to None
+        )
+        setattr(tribute, "_temp_allies", d.get("allies", []))  # store allies temporarily
+        tributes.append(tribute)
 
-    # Make random allies to test fighting
+    # Set up alliances (need to do this after all tributes are created)
     for tribute in tributes:
-        tribute.allies = random.sample(tributes, k=random.randint(0, 3))
-        tribute.enemies = random.sample(tributes, k=random.randint(0, 3))
+        tribute.allies = [t for t in tributes if t.name in getattr(tribute, "_temp_allies", [])]
+        delattr(tribute, "_temp_allies")  # remove temporary attribute
 
     game = GameMaker(tributes)
     game.run_game()

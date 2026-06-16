@@ -15,35 +15,21 @@ class EventBase(ABC):
         self.tributes = tributes
 
     @abstractmethod
-    def execute(self) -> list[Tribute]:
-        ...
+    def execute(self) -> list[Tribute]: ...
 
 
 class EventFight(EventBase):
     num_participants = 2
 
     def execute(self) -> list[Tribute]:
-        # Group tributes by location
-        location_groups = {}
-        for tribute in self.tributes:
-            coords_key = tuple(tribute.coords)
-            if coords_key not in location_groups:
-                location_groups[coords_key] = []
-            location_groups[coords_key].append(tribute)
-
-        # Find locations with at least 2 tributes
-        valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
-
-        if not valid_locations:
-            return []
+        # TODO: This should be in the GameMaker class, not here.
+        # Instead of picking events for the tributes remaining, we should pick
+        # a location with tributes in it, then pick random events for them.
 
         print("A fight is happening!")
 
-        # Pick a random location with multiple tributes
-        fight_location = random.choice(valid_locations)
-        players = random.sample(fight_location, k=self.num_participants)
-
         print("Fighting between:")
+        players = random.sample(self.tributes, k=self.num_participants)
         for player in players:
             print(
                 f" - {player.name} (rank: {player.rank}, health: {player.health}, fighting score: {player.fighting_score})"
@@ -167,13 +153,9 @@ class EventMutts(EventBase):
     def execute(self) -> list[Tribute]:
 
         mutt = random.choice(self.mutts_list)
-        mutt_zone = [random.randint(-2, 2), random.randint(-2, 2)]
-        print(f"{mutt.capitalize()} have been released into area {mutt_zone}!")
+        print(f"{mutt.capitalize()} have been released!")
 
-        tributes = [tribute for tribute in self.tributes if tribute.coords == mutt_zone]
-        if len(tributes) == 0:
-            print("But nobody is there womp womp")
-        for tribute in tributes:
+        for tribute in self.tributes:
             d6 = random.randint(1, 6)
 
             if d6 in [1]:
@@ -182,17 +164,21 @@ class EventMutts(EventBase):
                 tribute.kill()
             if d6 in [2, 3]:
                 # severe injury
-                tribute.adjust_health(-5)
                 print(f"{tribute.name} was severely wounded by the {mutt}!")
+                tribute.adjust_health(-5)
             if d6 in [4, 5]:
                 # wounded!
-                tribute.adjust_health(-3)
                 print(f"{tribute.name} was slightly wounded by the {mutt}!")
+                tribute.adjust_health(-3)
             if d6 in [6]:
                 # escaped!
-                tribute.adjust_health(-1)
                 print(f"{tribute.name} escaped the {mutt}!")
-        return tributes
+                tribute.adjust_health(-1)
+
+        if all(tribute.is_dead for tribute in self.tributes):
+            print("All tributes were killed womp womp")
+
+        return self.tributes
 
 
 class EventFood(EventBase):
