@@ -5,6 +5,15 @@ from shiny import reactive
 import math
 import random
 
+ARENA_THEMES = [
+    "Forest",
+    "Desert",
+    "Snow",
+    "Swamp",
+    "Mountains",
+    "Ruins",
+]
+
 app_ui = ui.page_fluid(
     ui.row(
         ui.column(6, ui.h2("Hunger Games Simulator")),
@@ -28,6 +37,7 @@ app_ui = ui.page_fluid(
             ui.output_ui("ranks"),
             ui.output_ui("alliances"),
             ui.output_ui("traits"),
+            ui.output_ui("arena_theme"),
         ),
         ui.nav_panel(
             "Game",
@@ -45,6 +55,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     alliances_store = reactive.Value(None)   # will hold alliances (None = random/not set)
     traits_store = reactive.Value(None)      # will hold traits assignments
     ranks_store = reactive.Value(None)       # will hold rank assignments
+    arena_theme_store = reactive.Value("Forest")  # will hold arena theme (default to Forest)
     theme_mode = reactive.Value('light')    # track current theme mode
 
     @reactive.effect
@@ -153,6 +164,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         
         # Export to JSON automatically
         _export_tributes_to_json()
+        _export_arena_to_json()
         
         ui.notification_show("Tribute names saved, assigned to districts, and exported to tributes.json", type="success", duration=2)
 
@@ -188,12 +200,20 @@ def server(input: Inputs, output: Outputs, session: Session):
                         "district": d["district"],
                         "traits": trait_list,
                         "alliances": alliance_list,
-                        "rank": rank_val
+                        "rank": rank_val,
                     }
                     export_data.append(tribute_obj)
         
         export_data = _convert_to_json_serializable(export_data)
         with open('tributes.json', 'w') as f:
+            json.dump(export_data, f, indent=2)
+
+    def _export_arena_to_json():
+        """Helper function to export the current arena theme to arena.json"""
+        arena_theme = arena_theme_store.get() or "Forest"
+        export_data = {"arena_theme": arena_theme}
+        export_data = _convert_to_json_serializable(export_data)
+        with open('arena.json', 'w') as f:
             json.dump(export_data, f, indent=2)
 
     def _convert_to_json_serializable(obj):
@@ -744,6 +764,65 @@ def server(input: Inputs, output: Outputs, session: Session):
         traits_store.set(mapping)
         _export_tributes_to_json()
         ui.notification_show("Random traits generated.", type="success", duration=2)
+
+
+    @output
+    @render.ui
+    def arena_theme():
+        current_theme = arena_theme_store.get() or "Forest"
+        try:
+            mode = input.arena_theme_mode()
+        except Exception:
+            mode = "Random"
+
+        radios = ui.input_radio_buttons("arena_theme_mode", "", ["Random", "Manual"], selected=mode)
+        parts = [
+            ui.h4("Arena Theme"),
+            ui.tags.div(radios, style="margin-top:10px;"),
+            ui.tags.br(),
+        ]
+
+        if mode == "Manual":
+            parts.extend([
+                ui.input_select("select_arena_theme", "Choose a theme:", choices=ARENA_THEMES, selected=current_theme),
+                ui.tags.br(),
+                ui.input_action_button("save_arena_theme", "Save theme"),
+            ])
+        else:
+            parts.extend([
+                ui.input_action_button("random_arena_theme", "Choose random theme"),
+            ])
+
+        parts.extend([
+            ui.tags.br(),
+            ui.tags.p(f"Current arena theme: {current_theme}"),
+        ])
+
+        return ui.TagList(*parts)
+
+    @reactive.effect
+    @reactive.event(input.save_arena_theme)
+    def save_arena_theme():
+        try:
+            selected_theme = input.select_arena_theme()
+        except Exception:
+            selected_theme = None
+
+        if selected_theme not in ARENA_THEMES:
+            ui.notification_show("Please select a valid arena theme.", type="warning", duration=3)
+            return
+
+        arena_theme_store.set(selected_theme)
+        _export_arena_to_json()
+        ui.notification_show(f"Arena theme set to {selected_theme}.", type="success", duration=2)
+
+    @reactive.effect
+    @reactive.event(input.random_arena_theme)
+    def random_arena_theme():
+        selected_theme = random.choice(ARENA_THEMES)
+        arena_theme_store.set(selected_theme)
+        _export_arena_to_json()
+        ui.notification_show(f"Random arena theme selected: {selected_theme}.", type="success", duration=2)
 
     @output
     @render.ui

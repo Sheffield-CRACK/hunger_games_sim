@@ -12,6 +12,8 @@ from events import (
     EventMutts,
     EventSponsorGift,
     EventUseEquipment,
+    EventBloodbath,
+    EventForage,
 )
 from tribute import Tribute
 
@@ -46,6 +48,7 @@ class GameMaker:
             EventGetEquipment,
             EventUseEquipment,
             EventSponsorGift,
+            EventForage,
         ]
         self.day = 0
         self.dead_tributes: list[tuple[Tribute, int]] = []
@@ -120,9 +123,9 @@ class GameMaker:
             print("The tributes gather at the cornucopia...")
             self.print_tributes()
 
-            # execute events first on day 1
-            self.execute_events()
-
+            # execute bloodbath first on day 1
+            EventBloodbath(self, self.tributes).execute()
+            
             print("Tributes scatter from the cornucopia...")
 
             # Now progress time (movement) after events on day 1
