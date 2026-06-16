@@ -2,8 +2,10 @@ import random
 
 from equipment import Equipment
 from events import (
+    EventAlly,
     EventBase,
     EventDrink,
+    EventEnemy,
     EventFight,
     EventFood,
     EventGetEquipment,
@@ -36,6 +38,8 @@ class GameMaker:
         }
         self.events = [
             EventFight,
+            EventAlly,
+            EventEnemy,
             EventMutts,
             EventFood,
             EventDrink,
