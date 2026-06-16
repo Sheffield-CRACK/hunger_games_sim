@@ -183,6 +183,9 @@ class GameMaker:
         if len(self.living_tributes) == 1:
             self.game_over()
             return False
+        elif len(self.living_tributes) == 0:
+            print("All tributes are dead! No winner :(")
+            return False
 
         # Wait for user to continue
         print("~~~~~~~~~~~~~~~")
