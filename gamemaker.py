@@ -4,17 +4,17 @@ from equipment import Equipment
 from events import (
     EventAlly,
     EventBase,
+    EventBloodbath,
     EventDrink,
     EventEnemy,
+    EventExposure,
     EventFight,
     EventFood,
+    EventForage,
     EventGetEquipment,
     EventMutts,
     EventSponsorGift,
     EventUseEquipment,
-    EventExposure,
-    EventBloodbath,
-    EventForage,
 )
 from tribute import Tribute
 
@@ -126,48 +126,27 @@ class GameMaker:
         # On subsequent days, movement happens first, then events
         if self.day == 1:
             print("The tributes gather at the cornucopia...")
-            self.print_tributes()
-
-            # execute bloodbath first on day 1
             EventBloodbath(self, self.tributes).execute()
-
             print("Tributes scatter from the cornucopia...")
 
-            # Now progress time (movement) after events on day 1
-            number_alive = len(self.living_tributes)
-            for tribute in self.tributes:
-                # if everyone else dies mid-turn, end the game
-                if number_alive == 1:
-                    self.game_over()
-                    return False
+        # Now progress time (movement)
+        print("Progressing time...")
+        number_alive = len(self.living_tributes)
+        for tribute in self.tributes:
+            # if everyone else dies mid-turn, end the game
+            if number_alive == 1:
+                self.game_over()
+                return False
 
-                # skip dead people
-                if tribute.is_dead:
-                    continue
+            # skip dead people
+            if tribute.is_dead:
+                continue
 
-                stays_alive = tribute.progress_time()
-                if not stays_alive:
-                    number_alive -= 1
-        else:
-            # progress time for each tribute (movement happens first on day 2+)
-            print("Progressing time...")
-            number_alive = len(self.living_tributes)
-            for tribute in self.tributes:
-                # if everyone else dies mid-turn, end the game
-                if number_alive == 1:
-                    self.game_over()
-                    return False
+            stays_alive = tribute.progress_time()
+            if not stays_alive:
+                number_alive -= 1
 
-                # skip dead people
-                if tribute.is_dead:
-                    continue
-
-                stays_alive = tribute.progress_time()
-                if not stays_alive:
-                    number_alive -= 1
-
-            self.print_tributes()
-
+        if self.day > 1:
             # execute events after movement on day 2+
             self.execute_events()
 
@@ -194,7 +173,11 @@ class GameMaker:
 
         # Wait for user to continue
         print("~~~~~~~~~~~~~~~")
-        input("Continue? :")
+        try:
+            input("Continue? :")
+        except KeyboardInterrupt:
+            print("\nExiting game...")
+            return False
 
         return True
 
