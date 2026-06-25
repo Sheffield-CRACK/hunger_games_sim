@@ -429,23 +429,18 @@ class EventForage(EventBase):
         # Apply effects based on what they found
         if chosen_item == "food":
             tribute.hunger += 2
-            print(f"{tribute.name} found {chosen_item} while foraging!")
             print(f"{tribute.name} ate the food and gained 2 hunger points!")
         elif chosen_item == "medicinal herbs":
-            if "First aid kit" in tribute.inventory:
-                print(f"{tribute.name} found {chosen_item} while foraging!")
+            if "First aid kit" in tribute.equipment:
                 print(f"{tribute.name} added the medicinal herbs to their First Aid Kit and gained an extra use!")
-                tribute.inventory["First aid kit"].charges += 1
+                tribute.equipment["First aid kit"].charges += 1
             else:
-                print(f"{tribute.name} found {chosen_item} while foraging!")
                 tribute.adjust_health(+3)
                 print(f"{tribute.name} used the medicinal herbs and gained 3 health points!")
         elif chosen_item == "meat":
-            print(f"{tribute.name} found {chosen_item} while foraging!")
             tribute.hunger += self.possible_items["meat"].hunger_bonus
             print(f"{tribute.name} ate the meat and gained {self.possible_items['meat'].hunger_bonus} hunger points!")
         elif chosen_item == "poison berries":
-            print(f"{tribute.name} found {chosen_item} while foraging!")
             tribute.adjust_health(self.possible_items["poison berries"].health_bonus)
             print(f"{tribute.name} ate the poison berries and lost {-self.possible_items['poison berries'].health_bonus} health points!")
         else:
