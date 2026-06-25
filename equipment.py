@@ -6,6 +6,7 @@ class Equipment:
     fighting_bonus: int
     comfort_bonus: int
     charges: int
+    weight: int
 
     def __init__(
         self,
@@ -16,6 +17,7 @@ class Equipment:
         fighting_bonus: int = 0,
         comfort_bonus: int = 0,
         charges: int = -1,
+        weight: int = 1,
     ):
         self.name = name
         self.hunger_bonus = hunger_bonus
@@ -24,6 +26,7 @@ class Equipment:
         self.fighting_bonus = fighting_bonus
         self.comfort_bonus = comfort_bonus
         self.charges = charges
+        self.weight = weight
 
     def __repr__(self) -> str:
         charges_str = "unlimited" if self.charges == -1 else f"{self.charges} uses left"
