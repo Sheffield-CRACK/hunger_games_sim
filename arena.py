@@ -181,12 +181,16 @@ class Arena:
                 if terrain == "grass":
                     candidate_points += [[i, j]]
 
-        self.start_location = self.rng.choice(candidate_points, 1)[0]
+        self.start_location = self.rng.choice(candidate_points, 1)[0].tolist()
 
-    def print_map(self) -> None:
+    def print_map(self, player_counts: np.ndarray) -> None:
         for i in range(0, self.world_size):
             row = ""
             for j in range(0, self.world_size):
+                if player_counts[i, j] > 0:
+                    row += f"{int(player_counts[i, j]):02d}"
+                    continue
+
                 if list(self.start_location) == [i, j]:
                     row += "X "
                     continue
@@ -210,5 +214,6 @@ class Arena:
             print(row)
 
 
-arena = Arena("forest", 0, 32)
-arena.print_map()
+# if __name__ == "__main__":
+#     arena = Arena("forest", 0, 32)
+#     arena.print_map()

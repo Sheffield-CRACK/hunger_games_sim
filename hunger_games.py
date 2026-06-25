@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from arena import Arena
 from gamemaker import GameMaker
 from tribute import Tribute
 
@@ -12,21 +13,28 @@ if __name__ == "__main__":
     if not isinstance(tributes_data, list):
         raise ValueError("tributes.json must contain a list of objects")
 
+    arena = Arena("forest", 0, 32)
+
     tributes: list[Tribute] = []
     for d in tributes_data:
         tribute = Tribute(
             name=d["name"],
             district=d["district"],
             rank=d["rank"],
+            arena=arena,
             trait=d.get("trait"),  # if not given, set to None
         )
-        setattr(tribute, "_temp_allies", d.get("allies", []))  # store allies temporarily
+        setattr(
+            tribute, "_temp_allies", d.get("allies", [])
+        )  # store allies temporarily
         tributes.append(tribute)
 
     # Set up alliances (need to do this after all tributes are created)
     for tribute in tributes:
-        tribute.allies = [t for t in tributes if t.name in getattr(tribute, "_temp_allies", [])]
+        tribute.allies = [
+            t for t in tributes if t.name in getattr(tribute, "_temp_allies", [])
+        ]
         delattr(tribute, "_temp_allies")  # remove temporary attribute
 
-    game = GameMaker(tributes)
+    game = GameMaker(tributes, arena)
     game.run_game()
