@@ -28,19 +28,24 @@ class GameMaker:
         self.tributes = tributes
         self.equipment = {
             # Non-exhaustible equipment
-            Equipment(name="Knife", fighting_bonus=2, charges=-1): 5,
-            Equipment(name="Sword", fighting_bonus=3, charges=-1): 1,
-            Equipment(name="Axe", fighting_bonus=2, charges=-1): 3,
-            Equipment(name="Trident", fighting_bonus=3, charges=-1): 1,
-            Equipment(name="Tarp", comfort_bonus=2, charges=-1): 3,
-            Equipment(name="Windbreaker", comfort_bonus=2, charges=-1): 2,
-            Equipment(name="Socks", comfort_bonus=1, charges=-1): 3,
+            Equipment(name="Knife", fighting_bonus=2, charges=-1, weight=1): 5,
+            Equipment(name="Sword", fighting_bonus=3, charges=-1, weight=2): 1,
+            Equipment(name="Axe", fighting_bonus=2, charges=-1, weight=3): 3,
+            Equipment(name="Trident", fighting_bonus=3, charges=-1, weight=3): 1,
+            Equipment(name="Tarp", comfort_bonus=2, charges=-1, weight=2): 3,
+            Equipment(name="Windbreaker", comfort_bonus=2, charges=-1, weight=1): 2,
+            Equipment(name="Socks", comfort_bonus=1, charges=-1, weight=0): 3,
+            Equipment(name="Rope", comfort_bonus=1, charges=-1, weight=1): 3,
+            Equipment(name="Hammock", comfort_bonus=3, charges=-1, weight=2): 2,
+            Equipment(name="Backpack", charges=-1, weight=0): 2,
             # Exhaustible equipment
-            Equipment(name="Bow and Arrows", fighting_bonus=3, charges=6): 2,
-            Equipment(name="Blowgun", fighting_bonus=1, charges=12): 6,
-            Equipment(name="First Aid Kit", health_bonus=5, charges=1): 3,
-            Equipment(name="Canteen", thirst_bonus=5, charges=3, comfort_bonus=-1): 3,
-            Equipment(name="Rations", hunger_bonus=2, charges=2): 3,
+            Equipment(name="Bow and Arrows", fighting_bonus=3, charges=6, weight=2): 2,
+            Equipment(name="Blowgun", fighting_bonus=1, charges=12, weight=1): 6,
+            Equipment(name="First Aid Kit", health_bonus=5, charges=1, weight=1): 3,
+            Equipment(name="Canteen", thirst_bonus=5, charges=3, comfort_bonus=-1, weight=1): 3,
+            Equipment(name="Rations", hunger_bonus=2, charges=2, weight=1): 3,
+            Equipment(name="Soup", hunger_bonus=2, thirst_bonus=2, charges=1, weight=1): 3,
+            Equipment(name="Adrenaline", health_bonus=-1, fighting_bonus=1, weight=0): 2,
         }
         self.events = [
             EventFight,
