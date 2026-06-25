@@ -1,8 +1,15 @@
 from __future__ import annotations
+
 import numpy as np
 import matplotlib.pyplot as plt
-from perlin_noise import generate_fractal_noise_2d
 
+from perlin_noise import generate_fractal_noise_2d
+from typing import Literal, Any
+
+ArenaBiome = Literal["plains", "forest", "desert", "mountain"]
+
+HeightMode = Literal["flattened", "normal", "amplified"]
+TreeMode = Literal["dense", "normal", "oasis"]
 
 TERRAIN_TYPES = [
     "forest",
@@ -12,6 +19,25 @@ TERRAIN_TYPES = [
     "snow",
     "water",
 ]
+
+BIOMES: dict[ArenaBiome, Any] = {
+    "plains": {
+        "ground": "grass",
+        "height": "default",
+        "trees": "default",
+    },
+    "forest": {
+        "ground": "grass",
+        "height": "default",
+        "trees": "dense",
+    },  # default
+    "desert": {
+        "ground": "sand",
+        "height": "flattened",
+        "trees": "oasis",
+    },  # flatten height map
+    "mountain": {"ground": "grass", "height": "amplified", "trees": "hill_forest"},
+}
 
 # class PerlinNoise:
 #     def __init__(self, size: int, seed: int | None = None) -> None:
@@ -27,9 +53,14 @@ TERRAIN_TYPES = [
 
 
 class Arena:
-    def __init__(self, seed: int = 0, world_size: int = 32) -> None:
+    def __init__(self, biome: ArenaBiome, seed: int = 0, world_size: int = 32) -> None:
+        self.biome = biome
         self.seed = seed
         self.world_size = world_size
+
+        self.ground_type = BIOMES[biome]["ground"]
+        self.height_type = BIOMES[biome]["height"]
+        self.tree_type = BIOMES[biome]["trees"]
 
         self.rng = np.random.default_rng(seed)
         self.grid_points = np.arange(0, world_size)
@@ -54,6 +85,7 @@ class Arena:
         )
         height_noise += 1
         height_noise = height_noise / 2
+        self.terrain_height = height_noise
         print(np.min(height_noise), np.max(height_noise))
         print("Noise:", height_noise)
 
@@ -90,10 +122,51 @@ class Arena:
                     if vegetation > 0.7:
                         self.terrain_type[i][j] = "forest"
                     else:
-                        self.terrain_type[i][j] = "grass"
+                        self.terrain_type[i][j] = self.ground_type
 
                 elif height >= 0.7:
                     self.terrain_type[i][j] = "snow"
+
+    def generate_trees(self) -> None:
+        vegetation_noise = generate_fractal_noise_2d(
+            (self.world_size, self.world_size),
+            (self.world_size / 16, self.world_size / 16),
+            octaves=2,
+            seed=self.seed + 1,
+        )
+        vegetation_noise += 1
+        vegetation_noise = vegetation_noise / 2
+        print(np.min(vegetation_noise), np.max(vegetation_noise))
+        print("Noise:", vegetation_noise)
+
+        plt.imshow(vegetation_noise)
+        plt.show()
+
+        for i in range(0, self.world_size):
+            for j in range(0, self.world_size):
+                height = self.terrain_height[i, j]
+                vegetation = vegetation_noise[i, j]
+
+                match self.tree_type:
+                    case "dense":
+                        if height < 0.7 and height >= 0.3:
+                            if vegetation > 0.7:
+                                self.terrain_type[i][j] = "forest"
+
+                    case "normal":
+                        if height < 0.7 and height >= 0.3:
+                            if vegetation > 0.7:
+                                self.terrain_type[i][j] = "forest"
+                        elif height < 0.3 and height >= 0.2:
+                            if vegetation > 0.6:
+                                self.terrain_type[i][j] = "forest"
+
+                    case "oasis":
+                        if height < 0.4 and height >= 0.3:
+                            if vegetation > 0.7:
+                                self.terrain_type[i][j] = "forest"
+                    case _:
+                        raise ValueError("Invalid tree mode")
 
     def generate_structures(self) -> None:
         # Set the start point
@@ -135,3 +208,7 @@ class Arena:
                         row += "? "
 
             print(row)
+
+
+arena = Arena("forest", 0, 32)
+arena.print_map()
