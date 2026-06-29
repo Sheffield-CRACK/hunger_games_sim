@@ -282,6 +282,15 @@ class Tribute:
                 equipment_bonus = item.fighting_bonus
         fighting_score += equipment_bonus
 
+        # encumbered penalty
+        if self.is_encumbered:
+            if 'Backpack' in self.equipment:
+                penalty = self.encumbrance - 10
+            else:
+                penalty = self.encumbrance - 5
+            
+            fighting_score -= penalty
+
         return fighting_score
 
     def progress_time(self) -> bool:
@@ -305,8 +314,11 @@ class Tribute:
         if self.thirst < 0:
             self.kill()
 
-        # randomly move to new coords
-        if random.random() < 0.5:
+        self.update_conditions()
+
+        # randomly move to new coords; encumbered tributes move slower
+        move_chance = 0.25 if self.is_encumbered() else 0.5
+        if random.random() < move_chance:
             for i in range(2):
                 # limit of 2 assumes 5x5 grid
                 if self.coords[i] == 2:
