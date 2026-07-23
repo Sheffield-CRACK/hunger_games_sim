@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from equipment import Equipment
 from tribute import Tribute
+from traps import Trap
 
 
 class EventBase(ABC):
@@ -493,5 +494,35 @@ class EventForage(EventBase):
             print(f"{tribute.name} ate the poison berries and lost {-self.possible_items['poison berries'].health_bonus} health points!")
         else:
             print(f"{tribute.name} found nothing while foraging!")
+
+        return [tribute]
+
+class EventMakeTrap(EventBase):
+    num_participants = 1
+
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f"{tribute.name} is attempting to make a trap!")
+
+        if "Hunter" in tribute.trait and "Trap materials" not in tribute.equipment:
+            success_chance = 0.6
+        elif "Hunter" in tribute.trait and "Trap materials" in tribute.equipment:
+            success_chance = 0.8
+        elif "Intelligent" in tribute.trait and "Trap materials" not in tribute.equipment:
+            success_chance = 0.35
+        elif "Intelligent" in tribute.trait and "Trap materials" in tribute.equipment:
+            success_chance = 0.55
+        else:
+            success_chance = 0.2
+
+        trap_coords = tuple(tribute.coords)
+        new_trap = Trap(owner=tribute)
+
+        if random.random() < success_chance:
+            print(f"{tribute.name} successfully made a trap!")
+            self.gamemaker.traps.setdefault(trap_coords, []).append(new_trap)
+            
+        else:
+            print(f"{tribute.name} failed to make a trap.")
 
         return [tribute]
