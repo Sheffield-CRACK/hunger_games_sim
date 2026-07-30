@@ -16,6 +16,7 @@ from events import (
     EventBloodbath,
     EventForage,
     EventMakeTrap,
+    EventTriggerTrap,
 )
 from tribute import Tribute
 from traps import Trap
@@ -64,6 +65,7 @@ class GameMaker:
             EventExposure,
             EventForage,
             EventMakeTrap,
+            EventTriggerTrap,
         ]
         self.day = 0
         self.dead_tributes: list[tuple[Tribute, int]] = []
@@ -97,11 +99,27 @@ class GameMaker:
             remaining_tributes = tributes_at_location.copy()
             while len(remaining_tributes) > 0:
                 # select a random event that has enough participants remaining
-                valid_events = [
-                    event
-                    for event in self.events
-                    if len(remaining_tributes) >= event.num_participants
-                ]
+                #valid_events = [
+                  #  event
+                  #  for event in self.events
+                 #   if len(remaining_tributes) >= event.num_participants
+                #]
+                valid_events = []
+
+                for event in self.events:
+                    if len(remaining_tributes) < event.num_participants:
+                        continue
+                    
+                    #only allow EventTriggerTrap if there is a trap at the location
+                    if event is EventTriggerTrap:
+                        location = tuple(remaining_tributes[0].coords)
+
+                        if location not in self.traps:
+                            continue
+                        else:
+                            valid_events.append(event)
+
+                    valid_events.append(event)
 
                 # randomly select a valid event type
                 event = random.choice(valid_events)
