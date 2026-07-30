@@ -548,7 +548,7 @@ class EventTriggerTrap(EventBase):
             return []
             
         #chance to trigger trap
-        if random.random() < 0.5:
+        if random.random() < 0.4:
             triggered_trap = random.choice(valid_traps)
             print(f"{tribute.name} triggered a trap set by {triggered_trap.owner.name}!")
             tribute.adjust_health(-triggered_trap.damage)
@@ -559,7 +559,27 @@ class EventTriggerTrap(EventBase):
             #remove coordinates from gamemaker.traps if no traps remain at this location
             if len(traps) == 0:
                 del self.gamemaker.traps[coords]
-            
+
+        elif "Intelligent" in tribute.trait and random.random() < 0.4:
+            print(f"{tribute.name} noticed a trap and avoided it!")
+            triggered_trap = random.choice(valid_traps)
+            if random.random() < 0.5:
+                print(f"{tribute.name} disarmed the trap!")
+
+                #remove trap after it has been triggered
+                traps.remove(triggered_trap)
+
+                #remove coordinates from gamemaker.traps if no traps remain at this location
+                if len(traps) == 0:
+                    del self.gamemaker.traps[coords]
+            elif "Intelligent" in tribute.trait and random.random() < 0.5:
+                print(f"{tribute.name} is trying to rework the trap to work in their favour.")
+                if random.random() < 0.5:
+                    print(f"They were successful!")
+                    triggered_trap.owner = tribute
+                else:
+                    print(f"They were unsuccessful :(")
+                    tribute.health -= 1
         else:
             print(f"{tribute.name} notices something suspicious and avoids a trap.")
 
