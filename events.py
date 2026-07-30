@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from equipment import Equipment
 from tribute import Tribute
+from traps import Trap
 
 
 class EventBase(ABC):
@@ -495,3 +496,71 @@ class EventForage(EventBase):
             print(f"{tribute.name} found nothing while foraging!")
 
         return [tribute]
+
+class EventMakeTrap(EventBase):
+    num_participants = 1
+
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f"{tribute.name} is attempting to make a trap!")
+
+        if "Hunter" in tribute.trait and "Trap materials" not in tribute.equipment:
+            success_chance = 0.6
+        elif "Hunter" in tribute.trait and "Trap materials" in tribute.equipment:
+            success_chance = 0.8
+        elif "Intelligent" in tribute.trait and "Trap materials" not in tribute.equipment:
+            success_chance = 0.35
+        elif "Intelligent" in tribute.trait and "Trap materials" in tribute.equipment:
+            success_chance = 0.55
+        else:
+            success_chance = 0.2
+
+        trap_coords = tuple(tribute.coords)
+        new_trap = Trap(owner=tribute)
+
+        if random.random() < success_chance:
+            print(f"{tribute.name} successfully made a trap!")
+            self.gamemaker.traps.setdefault(trap_coords, []).append(new_trap)
+            
+        else:
+            print(f"{tribute.name} failed to make a trap.")
+
+        return [tribute]
+    
+class EventTriggerTrap(EventBase):
+    num_participants = 1
+
+    def execute(self) -> list[Tribute]:
+        tribute = self.tributes[0]
+
+        coords = tuple(tribute.coords)
+
+        #no traps at this location
+        if coords not in self.gamemaker.traps or len(self.gamemaker.traps[coords]) == 0:
+            return []
+
+        traps = self.gamemaker.traps[coords]
+
+        #ignore tributes own traps
+        valid_traps = [trap for trap in traps if trap.owner != tribute and trap.owner.is_alive]
+
+        if len(valid_traps) == 0:
+            return []
+            
+        #chance to trigger trap
+        if random.random() < 0.5:
+            triggered_trap = random.choice(valid_traps)
+            print(f"{tribute.name} triggered a trap set by {triggered_trap.owner.name}!")
+            tribute.adjust_health(-triggered_trap.damage)
+                
+            #remove trap after it has been triggered
+            traps.remove(triggered_trap)
+
+            #remove coordinates from gamemaker.traps if no traps remain at this location
+            if len(traps) == 0:
+                del self.gamemaker.traps[coords]
+            
+        else:
+            print(f"{tribute.name} notices something suspicious and avoids a trap.")
+
+        return[tribute]
