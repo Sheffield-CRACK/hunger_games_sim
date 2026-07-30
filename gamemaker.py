@@ -70,7 +70,7 @@ class GameMaker:
     def execute_events(self):
         # Group tributes by location
         location_groups = {}
-        for tribute in self.tributes:
+        for tribute in self.living_tributes:
             coords_key = tuple(tribute.coords)
             if coords_key not in location_groups:
                 location_groups[coords_key] = []
