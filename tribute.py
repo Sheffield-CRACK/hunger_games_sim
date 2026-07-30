@@ -27,7 +27,9 @@ class Tribute:
     thirst: float
     _health: float
     comfort: float
+    encumbrance: float
     coords: list[int]
+    conditions: list[str]
 
     def __init__(
         self,
@@ -39,6 +41,7 @@ class Tribute:
         thirst: int = 12,
         health: int = 12,
         comfort: int = 0,
+        encumbrance: int = 0,
         coords: list[int] | None = None,
     ):
         """
@@ -60,6 +63,10 @@ class Tribute:
             The tribute's initial hydration level.
         health : int, default: 12
             The tribute's initial health.
+        comfort : int, default: 0
+            The tribute's initial comfort level.
+        encumbrance : int, default: 0
+            The tribute's initial encumbrance level.
         coords : list[int], optional
             The tribute's position.
         """
@@ -94,17 +101,24 @@ class Tribute:
         self.thirst = thirst
         self._health = health
         self.comfort = comfort
+        self._encumbrance = encumbrance
         self.coords = [0, 0] if coords is None else coords
         self.equipment = []
+        self.conditions = []
 
     def __str__(self) -> str:
-        string = f"{self.name} ({self.hunger}/{self.thirst}/{self.health}/{self.comfort}, {self.fighting_score})"
+        string = f"{self.name} ({self.hunger}/{self.thirst}/{self.health}/{self.comfort}/{self.encumbrance}, {self.fighting_score})"
         string += f", {self.coords}\n"
 
         # Traits
         string += " - Traits:\n"
         trait_str = ", ".join(self.trait) if len(self.trait) > 0 else "None"
         string += f"   - {trait_str}\n"
+
+        #conditions
+        string += " - Conditions:\n"
+        condition_str = ", ".join(self.conditions) if len(self.conditions) > 0 else "None"
+        string += f"   - {condition_str}\n"
 
         # Equipment
         string += " - Equipment:\n"
@@ -163,6 +177,31 @@ class Tribute:
 
     def kill(self):
         self.set_health(0)
+
+    # Encumbrance
+    @property
+    def encumbrance(self) -> float:
+        return self._encumbrance + sum(getattr(item, "weight", 0) for item in self.equipment)
+
+    @encumbrance.setter
+    def encumbrance(self, value: float) -> None:
+        self._encumbrance = value
+
+    def is_encumbered(self) -> bool:
+        if "Backpack" in [item.name for item in self.equipment]:
+            return self.encumbrance > 10
+        else:
+            return self.encumbrance > 5
+
+    def update_conditions(self) -> None:
+        """Update conditions based on current tribute state."""
+        # Update encumbered condition
+        if self.is_encumbered():
+            if "encumbered" not in self.conditions:
+                self.conditions.append("encumbered")
+        else:
+            if "encumbered" in self.conditions:
+                self.conditions.remove("encumbered")
 
     # Alliances and enemies management
     @property
@@ -243,6 +282,15 @@ class Tribute:
                 equipment_bonus = item.fighting_bonus
         fighting_score += equipment_bonus
 
+        # encumbered penalty
+        if self.is_encumbered:
+            if 'Backpack' in self.equipment:
+                penalty = self.encumbrance - 10
+            else:
+                penalty = self.encumbrance - 5
+            
+            fighting_score -= penalty
+
         return fighting_score
 
     def progress_time(self) -> bool:
@@ -266,8 +314,11 @@ class Tribute:
         if self.thirst < 0:
             self.kill()
 
-        # randomly move to new coords
-        if random.random() < 0.5:
+        self.update_conditions()
+
+        # randomly move to new coords; encumbered tributes move slower
+        move_chance = 0.25 if self.is_encumbered() else 0.5
+        if random.random() < move_chance:
             for i in range(2):
                 # limit of 2 assumes 5x5 grid
                 if self.coords[i] == 2:

@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from equipment import Equipment
 from tribute import Tribute
+from traps import Trap
 
 
 class EventBase(ABC):
@@ -237,25 +238,51 @@ class EventGetEquipment(EventBase):
         equipment = random.choice(valid_equipment)
         new_equipment = deepcopy(equipment)
 
-        # Remove one of the equipments from gamemaker inventory
-        self.gamemaker.equipment[equipment] -= 1
+        tribute.update_conditions()
 
-        if new_equipment.charges != -1:
-            # Exhaustible equipment
-            # Check if they already have one of the same type
-            already_has_one = False
-            for equip in tribute.equipment:
-                if equip.name == new_equipment.name:
-                    already_has_one = True
-                    print(f"{tribute.name} found {new_equipment.name} but already has one!")
-                    equip.charges += new_equipment.charges
-                    print(f"{equip.name} now has {equip.charges} uses!")
-            if not already_has_one:
+        # Evaluate whether the tribute would become encumbered after picking up the item
+        projected_equipment = tribute.equipment + [new_equipment]
+        projected_encumbrance = sum(getattr(item, "weight", 0) for item in projected_equipment)
+        projected_is_encumbered = (
+            projected_encumbrance > 5
+            if "Backpack" not in [item.name for item in projected_equipment]
+            else projected_encumbrance > 10
+        )
+        should_use_encumbered_logic = tribute.is_encumbered() or projected_is_encumbered
+
+        if not should_use_encumbered_logic:
+            # remove one of the equipment from the gamemaker's inventory
+            self.gamemaker.equipment[equipment] -= 1
+
+            if new_equipment.charges != -1:
+                # Exhaustible equipment
+                # Check if they already have one of the same type
+                already_has_one = False
+                for equip in tribute.equipment:
+                    if equip.name == new_equipment.name:
+                        already_has_one = True
+                        print(f"{tribute.name} found {new_equipment.name} but already has one!")
+                        equip.charges += new_equipment.charges
+                        print(f"{equip.name} now has {equip.charges} uses!")
+                if not already_has_one:
+                    print(f"{tribute.name} found equipment: {new_equipment.name}!")
+                    tribute.equipment.append(new_equipment)
+            else:
                 print(f"{tribute.name} found equipment: {new_equipment.name}!")
                 tribute.equipment.append(new_equipment)
         else:
-            print(f"{tribute.name} found equipment: {new_equipment.name}!")
-            tribute.equipment.append(new_equipment)
+            if random.random() < 0.5:
+                print(f"{tribute.name} found {new_equipment.name} but is carrying too much to pick it up!")
+            elif 0.5 <= random.random() < 0.8:
+                random_equipment = random.choice(tribute.equipment)
+                print(f"{tribute.name} found {new_equipment.name}. They dropped {random_equipment.name} to pick it up instead.")
+                tribute.equipment.remove(random_equipment)
+                tribute.equipment.append(new_equipment)
+            else:
+                print(f"{tribute.name} found {new_equipment.name}. They have too much stuff already, but managed to pick it up anyway!")
+                tribute.equipment.append(new_equipment)
+
+        tribute.update_conditions()
         return [tribute]
 
 
@@ -296,6 +323,7 @@ class EventUseEquipment(EventBase):
             if equipment.is_broken:
                 print(f"{equipment.name} is gone!")
                 tribute.equipment.remove(equipment)
+                tribute.encumbrance -= equipment.weight
             else:
                 print(f"{equipment.name} has {equipment.charges} uses left.")
 
@@ -311,6 +339,7 @@ class EventSponsorGift(EventBase):
         Equipment(name="Spile", thirst_bonus=1, charges=-1, comfort_bonus=-1),
         Equipment(name="Water Purifier", charges=3),
         Equipment(name="Fire starter kit", charges=3, comfort_bonus=3),
+        Equipment(name="Backpack", weight=1, charges=-1),
     ]
 
     def execute(self) -> list[Tribute]:
@@ -320,6 +349,7 @@ class EventSponsorGift(EventBase):
         gift = deepcopy(gift)
         print(f"{tribute.name} received a sponsor gift: {gift}!")
         tribute.equipment.append(gift)
+        tribute.encumbrance += gift.weight
         return [tribute]
 
 
@@ -391,6 +421,25 @@ class EventBloodbath(EventBase):
             if alive_count <= initial_count / 2:
                 break
 
+            # Allow tributes to pick up equipment if they survive the bloodbath
+            if not tribute.is_dead:
+                # Randomly determine if they find equipment
+                if random.random() < 0.5:  # 50% chance of finding equipment
+                    bloodbath_equipment = list(self.gamemaker.equipment.keys()) + list(
+                        EventSponsorGift.possible_gifts
+                    )
+                    valid_equipment = [
+                        equipment for equipment in bloodbath_equipment if equipment in self.gamemaker.equipment or equipment in EventSponsorGift.possible_gifts
+                    ]
+                    if len(valid_equipment) > 0:
+                        equipment = random.choice(valid_equipment)
+                        new_equipment = deepcopy(equipment)
+                        print(f"{tribute.name} found {new_equipment.name} at the cornucopia!")
+                        tribute.equipment.append(new_equipment)
+                        tribute.update_conditions()
+                        if equipment in self.gamemaker.equipment:
+                            self.gamemaker.equipment[equipment] -= 1
+
         return self.tributes
 
 class EventForage(EventBase):
@@ -429,26 +478,89 @@ class EventForage(EventBase):
         # Apply effects based on what they found
         if chosen_item == "food":
             tribute.hunger += 2
-            print(f"{tribute.name} found {chosen_item} while foraging!")
             print(f"{tribute.name} ate the food and gained 2 hunger points!")
         elif chosen_item == "medicinal herbs":
-            if "First aid kit" in tribute.inventory:
-                print(f"{tribute.name} found {chosen_item} while foraging!")
+            if "First aid kit" in tribute.equipment:
                 print(f"{tribute.name} added the medicinal herbs to their First Aid Kit and gained an extra use!")
-                tribute.inventory["First aid kit"].charges += 1
+                tribute.equipment["First aid kit"].charges += 1
             else:
-                print(f"{tribute.name} found {chosen_item} while foraging!")
                 tribute.adjust_health(+3)
                 print(f"{tribute.name} used the medicinal herbs and gained 3 health points!")
         elif chosen_item == "meat":
-            print(f"{tribute.name} found {chosen_item} while foraging!")
             tribute.hunger += self.possible_items["meat"].hunger_bonus
             print(f"{tribute.name} ate the meat and gained {self.possible_items['meat'].hunger_bonus} hunger points!")
         elif chosen_item == "poison berries":
-            print(f"{tribute.name} found {chosen_item} while foraging!")
             tribute.adjust_health(self.possible_items["poison berries"].health_bonus)
             print(f"{tribute.name} ate the poison berries and lost {-self.possible_items['poison berries'].health_bonus} health points!")
         else:
             print(f"{tribute.name} found nothing while foraging!")
 
         return [tribute]
+
+class EventMakeTrap(EventBase):
+    num_participants = 1
+
+    def execute(self) -> list[Tribute]:
+        tribute = random.sample(self.tributes, k=self.num_participants)[0]
+        print(f"{tribute.name} is attempting to make a trap!")
+
+        if "Hunter" in tribute.trait and "Trap materials" not in tribute.equipment:
+            success_chance = 0.6
+        elif "Hunter" in tribute.trait and "Trap materials" in tribute.equipment:
+            success_chance = 0.8
+        elif "Intelligent" in tribute.trait and "Trap materials" not in tribute.equipment:
+            success_chance = 0.35
+        elif "Intelligent" in tribute.trait and "Trap materials" in tribute.equipment:
+            success_chance = 0.55
+        else:
+            success_chance = 0.2
+
+        trap_coords = tuple(tribute.coords)
+        new_trap = Trap(owner=tribute)
+
+        if random.random() < success_chance:
+            print(f"{tribute.name} successfully made a trap!")
+            self.gamemaker.traps.setdefault(trap_coords, []).append(new_trap)
+            
+        else:
+            print(f"{tribute.name} failed to make a trap.")
+
+        return [tribute]
+    
+class EventTriggerTrap(EventBase):
+    num_participants = 1
+
+    def execute(self) -> list[Tribute]:
+        tribute = self.tributes[0]
+
+        coords = tuple(tribute.coords)
+
+        #no traps at this location
+        if coords not in self.gamemaker.traps or len(self.gamemaker.traps[coords]) == 0:
+            return []
+
+        traps = self.gamemaker.traps[coords]
+
+        #ignore tributes own traps
+        valid_traps = [trap for trap in traps if trap.owner != tribute and trap.owner.is_alive]
+
+        if len(valid_traps) == 0:
+            return []
+            
+        #chance to trigger trap
+        if random.random() < 0.5:
+            triggered_trap = random.choice(valid_traps)
+            print(f"{tribute.name} triggered a trap set by {triggered_trap.owner.name}!")
+            tribute.adjust_health(-triggered_trap.damage)
+                
+            #remove trap after it has been triggered
+            traps.remove(triggered_trap)
+
+            #remove coordinates from gamemaker.traps if no traps remain at this location
+            if len(traps) == 0:
+                del self.gamemaker.traps[coords]
+            
+        else:
+            print(f"{tribute.name} notices something suspicious and avoids a trap.")
+
+        return[tribute]
