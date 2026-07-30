@@ -374,13 +374,13 @@ class EventBloodbath(EventBase):
         # Randomly determine if each tribute is killed in the bloodbath
         for tribute in self.tributes:
             if "Career" in tribute.trait:
-                if random.random() < 0.1:  # 10% chance of being killed
+                if random.random() < 0.3:  # 30% chance of being killed
                     print(f"{tribute.name} was killed in the bloodbath!")
                     tribute.kill()
                 else:
                     print(f"{tribute.name} survived the bloodbath!")
             else:
-                if random.random() < 0.3:  # 30% chance of being killed
+                if random.random() < 0.6:  # 60% chance of being killed
                     print(f"{tribute.name} was killed in the bloodbath!")
                     tribute.kill()
                 else:
