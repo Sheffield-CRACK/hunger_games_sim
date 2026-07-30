@@ -140,7 +140,7 @@ class EventEnemy(EventBase):
 
 
 class EventMutts(EventBase):
-    num_participants = -1
+    num_participants = -1  # everyone in the location participates
     mutts_list = [
         "tracker jackers",
         "jabberjays",
@@ -360,7 +360,7 @@ class EventExposure(EventBase):
 
 
 class EventBloodbath(EventBase):
-    num_participants = -1  # All tributes participate
+    num_participants = -1  # everyone in the location participates
 
     def execute(self) -> list[Tribute]:
         print("The Bloodbath has begun at the Cornucopia!")
