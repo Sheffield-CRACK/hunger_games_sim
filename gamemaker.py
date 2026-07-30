@@ -15,22 +15,17 @@ from events import (
     EventExposure,
     EventBloodbath,
     EventForage,
-    EventMakeTrap,
-    EventTriggerTrap,
 )
 from tribute import Tribute
-from traps import Trap
 
 
 class GameMaker:
     tributes: list[Tribute]
     events: list[type[EventBase]]
     equipment: dict[Equipment, int]
-    traps: dict[tuple[int, int], list[Trap]]
 
     def __init__(self, tributes: list[Tribute]):
         self.tributes = tributes
-        self.traps = {}
         self.equipment = {
             # Non-exhaustible equipment
             Equipment(name="Knife", fighting_bonus=2, charges=-1, weight=1): 5,
@@ -64,8 +59,6 @@ class GameMaker:
             EventSponsorGift,
             EventExposure,
             EventForage,
-            EventMakeTrap,
-            EventTriggerTrap,
         ]
         self.day = 0
         self.dead_tributes: list[tuple[Tribute, int]] = []
@@ -99,27 +92,11 @@ class GameMaker:
             remaining_tributes = tributes_at_location.copy()
             while len(remaining_tributes) > 0:
                 # select a random event that has enough participants remaining
-                #valid_events = [
-                  #  event
-                  #  for event in self.events
-                 #   if len(remaining_tributes) >= event.num_participants
-                #]
-                valid_events = []
-
-                for event in self.events:
-                    if len(remaining_tributes) < event.num_participants:
-                        continue
-                    
-                    #only allow EventTriggerTrap if there is a trap at the location
-                    if event is EventTriggerTrap:
-                        location = tuple(remaining_tributes[0].coords)
-
-                        if location not in self.traps:
-                            continue
-                        else:
-                            valid_events.append(event)
-
-                    valid_events.append(event)
+                valid_events = [
+                    event
+                    for event in self.events
+                    if len(remaining_tributes) >= event.num_participants
+                ]
 
                 # randomly select a valid event type
                 event = random.choice(valid_events)
@@ -222,9 +199,12 @@ class GameMaker:
 
         # Wait for user to continue
         print("~~~~~~~~~~~~~~~")
-        input("Continue? :")
-
-        return True
+        while "I SAID (y/n)":
+            reply = str(input('Continue? (y/n): ')).lower().strip()
+            if reply[0] == 'y':
+                return True
+            if reply[0] == 'n':
+                return False
 
     def game_over(self):
         print("Game Over")
