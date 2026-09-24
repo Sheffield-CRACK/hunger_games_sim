@@ -1,4 +1,5 @@
 import random
+import os
 
 from equipment import Equipment
 from events import (
@@ -30,6 +31,8 @@ class GameMaker:
 
     def __init__(self, tributes: list[Tribute]):
         self.tributes = tributes
+        # Mapping of coordinates -> list of Trap objects
+        # Initialize as an empty dict so callers can use dict methods like setdefault
         self.traps = {}
         self.equipment = {
             # Non-exhaustible equipment
@@ -51,6 +54,7 @@ class GameMaker:
             Equipment(name="Rations", hunger_bonus=2, charges=2, weight=1): 3,
             Equipment(name="Soup", hunger_bonus=2, thirst_bonus=2, charges=1, weight=1): 3,
             Equipment(name="Adrenaline", health_bonus=-1, fighting_bonus=1, weight=0): 2,
+            Equipment(name="Trap materials", charges=1, weight=1): 10,
         }
         self.events = [
             EventFight,
@@ -222,7 +226,11 @@ class GameMaker:
 
         # Wait for user to continue
         print("~~~~~~~~~~~~~~~")
-        input("Continue? :")
+        # Allow automated runs to skip the interactive prompt by setting HG_AUTORUN=1
+        if os.getenv("HG_AUTORUN") != "1":
+            input("Continue? :")
+        else:
+            print("Auto-continue (HG_AUTORUN=1)")
 
         return True
 
