@@ -9,16 +9,36 @@ from arena import Arena
 
 
 class EventBase(ABC):
-    tributes: list[Tribute]
     num_participants: int = 1
 
-    def __init__(self, gamemaker, tributes: list[Tribute], arena: Arena):
+    def __init__(
+        self,
+        gamemaker,
+        tributes: list[Tribute],
+        arena: Arena,
+    ):
         self.gamemaker = gamemaker
         self.tributes = tributes
         self.arena = arena
 
     @abstractmethod
     def execute(self) -> list[Tribute]: ...
+
+
+class LocationEvent(EventBase):
+    num_participants: int = -1
+
+    def __init__(
+        self,
+        gamemaker,
+        tributes: list[Tribute],
+        arena: Arena,
+        location: tuple[int, int],
+    ):
+        self.gamemaker = gamemaker
+        self.tributes = tributes
+        self.arena = arena
+        self.location = location
 
 
 class EventFight(EventBase):
@@ -34,9 +54,7 @@ class EventFight(EventBase):
             location_groups[coords_key].append(tribute)
 
         # Find locations with at least 2 tributes
-        valid_locations = [
-            tributes for tributes in location_groups.values() if len(tributes) >= 2
-        ]
+        valid_locations = [tributes for tributes in location_groups.values() if len(tributes) >= 2]
 
         if not valid_locations:
             return []
@@ -51,21 +69,15 @@ class EventFight(EventBase):
             )
 
         # If they are both allied, they don't fight
-        if players[0].is_allied_with(players[1]) and players[1].is_allied_with(
-            players[0]
-        ):
+        if players[0].is_allied_with(players[1]) and players[1].is_allied_with(players[0]):
             print("But they are allies, so they don't fight!")
             return players
 
         # If only one is allied and the other isn't, it's a betrayal!
         betrayer, betrayed = None, None
-        if players[0].is_allied_with(players[1]) and not players[1].is_allied_with(
-            players[0]
-        ):
+        if players[0].is_allied_with(players[1]) and not players[1].is_allied_with(players[0]):
             betrayer, betrayed = players[1], players[0]
-        elif players[1].is_allied_with(players[0]) and not players[0].is_allied_with(
-            players[1]
-        ):
+        elif players[1].is_allied_with(players[0]) and not players[0].is_allied_with(players[1]):
             betrayer, betrayed = players[0], players[1]
         if betrayer is not None and betrayed is not None:
             # They become enemies, and the betrayed player takes damage.
@@ -82,9 +94,7 @@ class EventFight(EventBase):
             loser = None
 
         else:
-            sorted_players = sorted(
-                players, key=lambda x: x.fighting_score, reverse=True
-            )
+            sorted_players = sorted(players, key=lambda x: x.fighting_score, reverse=True)
             stronger, weaker = sorted_players[0], sorted_players[1]
 
             # Choose who wins the fight
@@ -162,7 +172,7 @@ class EventEnemy(EventBase):
         return [tribute1, tribute2]
 
 
-class EventMutts(EventBase):
+class EventMutts(LocationEvent):
     num_participants = -1  # everyone in the location participates
     mutts_list = [
         "tracker jackers",
@@ -176,11 +186,7 @@ class EventMutts(EventBase):
     def execute(self) -> list[Tribute]:
 
         mutt = random.choice(self.mutts_list)
-        mutt_zone = [
-            random.randint(0, self.arena.world_size - 1),
-            random.randint(0, self.arena.world_size - 1),
-        ]
-        print(f"{mutt.capitalize()} have been released into area {mutt_zone}!")
+        print(f"{mutt.capitalize()} have been released into area {self.location}!")
 
         for tribute in self.tributes:
             d6 = random.randint(1, 6)
@@ -255,11 +261,7 @@ class EventGetEquipment(EventBase):
 
     def execute(self) -> list[Tribute]:
         tribute = random.sample(self.tributes, k=self.num_participants)[0]
-        valid_equipment = [
-            equipment
-            for equipment, quantity in self.gamemaker.equipment.items()
-            if quantity > 0
-        ]
+        valid_equipment = [equipment for equipment, quantity in self.gamemaker.equipment.items() if quantity > 0]
         if len(valid_equipment) == 0:
             print("No equipment left to find, womp womp!")
             return [tribute]
@@ -270,9 +272,7 @@ class EventGetEquipment(EventBase):
 
         # Evaluate whether the tribute would become encumbered after picking up the item
         projected_equipment = tribute.equipment + [new_equipment]
-        projected_encumbrance = sum(
-            getattr(item, "weight", 0) for item in projected_equipment
-        )
+        projected_encumbrance = sum(getattr(item, "weight", 0) for item in projected_equipment)
         projected_is_encumbered = (
             projected_encumbrance > 5
             if "Backpack" not in [item.name for item in projected_equipment]
@@ -291,9 +291,7 @@ class EventGetEquipment(EventBase):
                 for equip in tribute.equipment:
                     if equip.name == new_equipment.name:
                         already_has_one = True
-                        print(
-                            f"{tribute.name} found {new_equipment.name} but already has one!"
-                        )
+                        print(f"{tribute.name} found {new_equipment.name} but already has one!")
                         equip.charges += new_equipment.charges
                         print(f"{equip.name} now has {equip.charges} uses!")
                 if not already_has_one:
@@ -304,9 +302,7 @@ class EventGetEquipment(EventBase):
                 tribute.equipment.append(new_equipment)
         else:
             if random.random() < 0.5:
-                print(
-                    f"{tribute.name} found {new_equipment.name} but is carrying too much to pick it up!"
-                )
+                print(f"{tribute.name} found {new_equipment.name} but is carrying too much to pick it up!")
             elif 0.5 <= random.random() < 0.8:
                 random_equipment = random.choice(tribute.equipment)
                 print(
@@ -328,9 +324,7 @@ class EventUseEquipment(EventBase):
     num_participants = 1
 
     def execute(self) -> list[Tribute]:
-        tributes_with_equipment = [
-            tribute for tribute in self.tributes if len(tribute.equipment) > 0
-        ]
+        tributes_with_equipment = [tribute for tribute in self.tributes if len(tribute.equipment) > 0]
         if len(tributes_with_equipment) == 0:
             return []
 
@@ -341,14 +335,10 @@ class EventUseEquipment(EventBase):
                 continue
 
             if equipment.name == "First Aid Kit" and "Healer" in tribute.trait:
-                print(
-                    f"{tribute.name} is a Healer and used {equipment.name} more effectively!"
-                )
+                print(f"{tribute.name} is a Healer and used {equipment.name} more effectively!")
                 keep_charge = random.random() < 0.6
                 if keep_charge:
-                    print(
-                        f"{tribute.name} was so efficient the kept the {equipment.name} for another use!"
-                    )
+                    print(f"{tribute.name} was so efficient the kept the {equipment.name} for another use!")
                     equipment.charges += 1
                 else:
                     print(f"{tribute.name} used up the {equipment.name}.")
@@ -408,9 +398,7 @@ class EventExposure(EventBase):
                 protected = False
                 for equipment in tribute.equipment:
                     if equipment.comfort_bonus < 0:
-                        print(
-                            f"{tribute.name} is protected from the heat by {equipment.name}!"
-                        )
+                        print(f"{tribute.name} is protected from the heat by {equipment.name}!")
                         tribute.comfort += equipment.comfort_bonus
                         protected = True
                         return [tribute]
@@ -423,9 +411,7 @@ class EventExposure(EventBase):
                 protected = False
                 for equipment in tribute.equipment:
                     if equipment.comfort_bonus > 0:
-                        print(
-                            f"{tribute.name} is protected from the cold by {equipment.name}!"
-                        )
+                        print(f"{tribute.name} is protected from the cold by {equipment.name}!")
                         tribute.comfort += equipment.comfort_bonus
                         protected = True
                         return [tribute]
@@ -435,17 +421,11 @@ class EventExposure(EventBase):
         return [tribute]
 
 
-class EventBloodbath(EventBase):
+class EventBloodbath(LocationEvent):
     num_participants = -1  # everyone in the location participates
 
     def execute(self) -> list[Tribute]:
         print("The Bloodbath has begun at the Cornucopia!")
-        for tribute in self.tributes:
-            # Randomly assign a starting position in the arena
-            tribute.coords = [
-                random.randint(0, 0),
-                random.randint(0, 0),
-            ]  # all tributes start at cornucopia
 
         # Track initial number of tributes so we can end the event early
         initial_count = len(self.tributes)
@@ -474,21 +454,16 @@ class EventBloodbath(EventBase):
             if not tribute.is_dead:
                 # Randomly determine if they find equipment
                 if random.random() < 0.5:  # 50% chance of finding equipment
-                    bloodbath_equipment = list(self.gamemaker.equipment.keys()) + list(
-                        EventSponsorGift.possible_gifts
-                    )
+                    bloodbath_equipment = list(self.gamemaker.equipment.keys()) + list(EventSponsorGift.possible_gifts)
                     valid_equipment = [
                         equipment
                         for equipment in bloodbath_equipment
-                        if equipment in self.gamemaker.equipment
-                        or equipment in EventSponsorGift.possible_gifts
+                        if equipment in self.gamemaker.equipment or equipment in EventSponsorGift.possible_gifts
                     ]
                     if len(valid_equipment) > 0:
                         equipment = random.choice(valid_equipment)
                         new_equipment = deepcopy(equipment)
-                        print(
-                            f"{tribute.name} found {new_equipment.name} at the cornucopia!"
-                        )
+                        print(f"{tribute.name} found {new_equipment.name} at the cornucopia!")
                         tribute.equipment.append(new_equipment)
                         tribute.update_conditions()
                         if equipment in self.gamemaker.equipment:
@@ -537,21 +512,15 @@ class EventForage(EventBase):
         elif chosen_item == "medicinal herbs":
             for item in tribute.equipment:
                 if item.name == "First aid kit":
-                    print(
-                        f"{tribute.name} added the medicinal herbs to their First Aid Kit and gained an extra use!"
-                    )
+                    print(f"{tribute.name} added the medicinal herbs to their First Aid Kit and gained an extra use!")
                     item.charges += 1
                     return [tribute]
 
             tribute.adjust_health(+3)
-            print(
-                f"{tribute.name} used the medicinal herbs and gained 3 health points!"
-            )
+            print(f"{tribute.name} used the medicinal herbs and gained 3 health points!")
         elif chosen_item == "meat":
             tribute.hunger += self.possible_items["meat"].hunger_bonus
-            print(
-                f"{tribute.name} ate the meat and gained {self.possible_items['meat'].hunger_bonus} hunger points!"
-            )
+            print(f"{tribute.name} ate the meat and gained {self.possible_items['meat'].hunger_bonus} hunger points!")
         elif chosen_item == "poison berries":
             tribute.adjust_health(self.possible_items["poison berries"].health_bonus)
             print(
@@ -574,9 +543,7 @@ class EventMakeTrap(EventBase):
             success_chance = 0.6
         elif "Hunter" in tribute.trait and "Trap materials" in tribute.equipment:
             success_chance = 0.8
-        elif (
-            "Intelligent" in tribute.trait and "Trap materials" not in tribute.equipment
-        ):
+        elif "Intelligent" in tribute.trait and "Trap materials" not in tribute.equipment:
             success_chance = 0.35
         elif "Intelligent" in tribute.trait and "Trap materials" in tribute.equipment:
             success_chance = 0.55
@@ -611,9 +578,7 @@ class EventTriggerTrap(EventBase):
         traps = self.gamemaker.traps[coords]
 
         # ignore tributes own traps
-        valid_traps = [
-            trap for trap in traps if trap.owner != tribute and trap.owner.is_alive
-        ]
+        valid_traps = [trap for trap in traps if trap.owner != tribute and trap.owner.is_alive]
 
         if len(valid_traps) == 0:
             return []
@@ -621,9 +586,7 @@ class EventTriggerTrap(EventBase):
         # chance to trigger trap
         if random.random() < 0.5:
             triggered_trap = random.choice(valid_traps)
-            print(
-                f"{tribute.name} triggered a trap set by {triggered_trap.owner.name}!"
-            )
+            print(f"{tribute.name} triggered a trap set by {triggered_trap.owner.name}!")
             tribute.adjust_health(-triggered_trap.damage)
 
             # remove trap after it has been triggered

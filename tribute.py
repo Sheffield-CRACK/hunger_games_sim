@@ -111,9 +111,7 @@ class Tribute:
 
         # conditions
         string += " - Conditions:\n"
-        condition_str = (
-            ", ".join(self.conditions) if len(self.conditions) > 0 else "None"
-        )
+        condition_str = ", ".join(self.conditions) if len(self.conditions) > 0 else "None"
         string += f"   - {condition_str}\n"
 
         # Equipment
@@ -177,9 +175,7 @@ class Tribute:
     # Encumbrance
     @property
     def encumbrance(self) -> float:
-        return self._encumbrance + sum(
-            getattr(item, "weight", 0) for item in self.equipment
-        )
+        return self._encumbrance + sum(getattr(item, "weight", 0) for item in self.equipment)
 
     @encumbrance.setter
     def encumbrance(self, value: float) -> None:
@@ -318,12 +314,11 @@ class Tribute:
         move_chance = 0.25 if self.is_encumbered() else 0.5
         if random.random() < move_chance:
             for i in range(2):
-                # limit of 2 assumes 5x5 grid
                 if self.coords[i] == self.arena.world_size - 1:
-                    self.coords[i] += random.randint(-1, 0)
+                    self.coords[i] += random.randint(-1, 0)  # move away from right/bottom edge or stay put
                 elif self.coords[i] == 0:
-                    self.coords[i] += random.randint(0, 1)
+                    self.coords[i] += random.randint(0, 1)  # move away from left/top edge or stay put
                 else:
-                    self.coords[i] += random.randint(-1, 1)
+                    self.coords[i] += random.randint(-1, 1)  # otherwise, move 1 square in any direction, or stay put
 
         return self.is_alive

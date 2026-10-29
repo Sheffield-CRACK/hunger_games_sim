@@ -4,7 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from perlin_noise import generate_fractal_noise_2d
-from typing import Literal, Any
+from typing import Literal, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tribute import Tribute
+
 
 ArenaBiome = Literal["plains", "forest", "desert", "mountain"]
 
@@ -66,9 +70,7 @@ class Arena:
         self.grid_points = np.arange(0, world_size)
         self.noise_grid_points = np.arange(0, world_size + 1)
 
-        self.terrain_type = [
-            ["grass" for _ in range(0, world_size)] for _ in range(0, world_size)
-        ]
+        self.terrain_type = [["grass" for _ in range(0, world_size)] for _ in range(0, world_size)]
         self.terrain_height = np.zeros((world_size, world_size))
         self.equipment_count = np.zeros((world_size, world_size))
         self.start_location = [0, 0]

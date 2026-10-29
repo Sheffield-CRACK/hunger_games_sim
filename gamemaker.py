@@ -45,22 +45,15 @@ class GameMaker:
             Equipment(name="Bow and Arrows", fighting_bonus=3, charges=6, weight=2): 2,
             Equipment(name="Blowgun", fighting_bonus=1, charges=12, weight=1): 6,
             Equipment(name="First Aid Kit", health_bonus=5, charges=1, weight=1): 3,
-            Equipment(
-                name="Canteen", thirst_bonus=5, charges=3, comfort_bonus=-1, weight=1
-            ): 3,
+            Equipment(name="Canteen", thirst_bonus=5, charges=3, comfort_bonus=-1, weight=1): 3,
             Equipment(name="Rations", hunger_bonus=2, charges=2, weight=1): 3,
-            Equipment(
-                name="Soup", hunger_bonus=2, thirst_bonus=2, charges=1, weight=1
-            ): 3,
-            Equipment(
-                name="Adrenaline", health_bonus=-1, fighting_bonus=1, weight=0
-            ): 2,
+            Equipment(name="Soup", hunger_bonus=2, thirst_bonus=2, charges=1, weight=1): 3,
+            Equipment(name="Adrenaline", health_bonus=-1, fighting_bonus=1, weight=0): 2,
         }
         self.events = [
             EventFight,
             EventAlly,
             EventEnemy,
-            EventMutts,
             EventFood,
             EventDrink,
             EventGetEquipment,
@@ -69,7 +62,11 @@ class GameMaker:
             EventExposure,
             EventForage,
         ]
+        self.location_events = [
+            EventMutts,
+        ]
         self.day = 0
+        self.player_counts = np.zeros((self.arena.world_size, self.arena.world_size))
         self.dead_tributes: list[tuple[Tribute, int]] = []
 
     @property
@@ -106,27 +103,18 @@ class GameMaker:
             # If not, everyone has individual events happen to them (or multiple tributes)
             if random.random() < 0.2:
                 # a random location event happens
-                location_events = [
-                    event for event in self.events if event.num_participants == -1
-                ]
-                location_event = random.choice(location_events)
+                location_event = random.choice(self.location_events)
                 # execute the event
-                affected_tributes = location_event(
-                    self, tributes_at_location, self.arena
-                ).execute()
+                affected_tributes = location_event(self, tributes_at_location, self.arena, location).execute()
 
             else:
                 # No location event, so we do individual events for each tribute
                 remaining_tributes = tributes_at_location.copy()
                 while len(remaining_tributes) > 0:
                     # select a random event
+                    valid_events = [event for event in self.events if event.num_participants == -1]
                     valid_events = [
-                        event for event in self.events if event.num_participants == -1
-                    ]
-                    valid_events = [
-                        event
-                        for event in self.events
-                        if len(remaining_tributes) >= event.num_participants
+                        event for event in self.events if len(remaining_tributes) >= event.num_participants
                     ]
 
                     # randomly select a valid event type
@@ -137,14 +125,10 @@ class GameMaker:
                         # all remaining tributes participate
                         selected_tributes = remaining_tributes.copy()
                     else:
-                        selected_tributes = random.sample(
-                            remaining_tributes, k=event.num_participants
-                        )
+                        selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
                     # execute the event
-                    affected_tributes = event(
-                        self, selected_tributes, self.arena
-                    ).execute()
+                    affected_tributes = event(self, selected_tributes, self.arena).execute()
 
                     # remove selected tributes from remaining tributes
                     for tribute in affected_tributes:
@@ -167,7 +151,7 @@ class GameMaker:
         # On subsequent days, movement happens first, then events
         if self.day == 1:
             print("The tributes gather at the cornucopia...")
-            EventBloodbath(self, self.tributes, self.arena).execute()
+            EventBloodbath(self, self.tributes, self.arena, tuple(self.arena.start_location)).execute()
             print("Tributes scatter from the cornucopia...")
 
         # Now progress time (movement)
@@ -217,10 +201,23 @@ class GameMaker:
         print("~~~~~~~~~~~~~~~")
         while "I SAID (y/n)":
             reply = str(input("Continue? (y/n): ")).lower().strip()
+            if len(reply) == 0:
+                continue
+
             if reply[0] == "y":
                 return True
             if reply[0] == "n":
                 return False
+
+    # def update_player_counts(self) -> None:
+    #     new_player_counts = np.zeros((self.arena.world_size, self.arena.world_size))
+    #     for tribute in self.living_tributes:
+    #         coords = tribute.coords
+    #         x = coords[0]
+    #         y = coords[1]
+    #         new_player_counts[x, y] += 1
+
+    #     self.player_counts = new_player_counts
 
     def print_map(self) -> None:
         player_counts = np.zeros((self.arena.world_size, self.arena.world_size))
