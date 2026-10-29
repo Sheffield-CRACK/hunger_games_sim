@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import random
+from typing import TYPE_CHECKING
+
+from arena import Arena
+
+if TYPE_CHECKING:
+    from equipment import Equipment
 
 TRIBUTE_TRAITS = [
     "Strong",
@@ -17,25 +23,12 @@ TRIBUTE_TRAITS = [
 
 
 class Tribute:
-    name: str
-    district: int
-    rank: int
-    trait: list[str]
-    enemies: list[Tribute]
-    allies: list[Tribute]
-    hunger: float
-    thirst: float
-    _health: float
-    comfort: float
-    encumbrance: float
-    coords: list[int]
-    conditions: list[str]
-
     def __init__(
         self,
         name: str,
         district: int,
         rank: int,
+        arena: Arena,
         trait: list[str] | None = None,
         hunger: int = 12,
         thirst: int = 12,
@@ -73,6 +66,7 @@ class Tribute:
         self.name = name
         self.district = district
         self.rank = rank
+        self.arena = arena
 
         # Determine base traits from the provided argument (None -> random)
         if trait is None:
@@ -102,8 +96,8 @@ class Tribute:
         self._health = health
         self.comfort = comfort
         self._encumbrance = encumbrance
-        self.coords = [0, 0] if coords is None else coords
-        self.equipment = []
+        self.coords = arena.start_location.copy() if coords is None else coords
+        self.equipment: list[Equipment] = []
         self.conditions = []
 
     def __str__(self) -> str:
@@ -115,7 +109,7 @@ class Tribute:
         trait_str = ", ".join(self.trait) if len(self.trait) > 0 else "None"
         string += f"   - {trait_str}\n"
 
-        #conditions
+        # conditions
         string += " - Conditions:\n"
         condition_str = ", ".join(self.conditions) if len(self.conditions) > 0 else "None"
         string += f"   - {condition_str}\n"
@@ -284,11 +278,11 @@ class Tribute:
 
         # encumbered penalty
         if self.is_encumbered:
-            if 'Backpack' in self.equipment:
+            if "Backpack" in self.equipment:
                 penalty = self.encumbrance - 10
             else:
                 penalty = self.encumbrance - 5
-            
+
             fighting_score -= penalty
 
         return fighting_score
@@ -320,12 +314,11 @@ class Tribute:
         move_chance = 0.25 if self.is_encumbered() else 0.5
         if random.random() < move_chance:
             for i in range(2):
-                # limit of 2 assumes 5x5 grid
-                if self.coords[i] == 2:
-                    self.coords[i] += random.randint(-1, 0)
-                elif self.coords[i] == -2:
-                    self.coords[i] += random.randint(0, 1)
+                if self.coords[i] == self.arena.world_size - 1:
+                    self.coords[i] += random.randint(-1, 0)  # move away from right/bottom edge or stay put
+                elif self.coords[i] == 0:
+                    self.coords[i] += random.randint(0, 1)  # move away from left/top edge or stay put
                 else:
-                    self.coords[i] += random.randint(-1, 1)
+                    self.coords[i] += random.randint(-1, 1)  # otherwise, move 1 square in any direction, or stay put
 
         return self.is_alive
