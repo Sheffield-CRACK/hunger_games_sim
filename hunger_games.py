@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from arena import Arena
 from gamemaker import GameMaker
 from tribute import Tribute
 
@@ -28,5 +29,14 @@ if __name__ == "__main__":
         tribute.allies = [t for t in tributes if t.name in getattr(tribute, "_temp_allies", [])]
         delattr(tribute, "_temp_allies")  # remove temporary attribute
 
-    game = GameMaker(tributes)
+    # Create an arena
+    arena = Arena(size=3)
+
+    # Every tribute starts at the centre of the arena
+    for tribute in tributes:
+        center = arena.get_location([0, 0])  # TODO: this is the corner, not the center!!
+        tribute.move_to(center)
+
+    # Run the game
+    game = GameMaker(arena, tributes)
     game.run_game()

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import typing
 import random
+
+if typing.TYPE_CHECKING:
+    from arena import Location
 
 TRIBUTE_TRAITS = [
     "Strong",
@@ -28,7 +32,7 @@ class Tribute:
     _health: float
     comfort: float
     encumbrance: float
-    coords: list[int]
+    location: Location | None
     conditions: list[str]
 
     def __init__(
@@ -42,7 +46,7 @@ class Tribute:
         health: int = 12,
         comfort: int = 0,
         encumbrance: int = 0,
-        coords: list[int] | None = None,
+        location: Location | None = None,
     ):
         """
         Create a new Tribute
@@ -67,8 +71,8 @@ class Tribute:
             The tribute's initial comfort level.
         encumbrance : int, default: 0
             The tribute's initial encumbrance level.
-        coords : list[int], optional
-            The tribute's position.
+        location : Location, optional
+            The tribute's current location.
         """
         self.name = name
         self.district = district
@@ -102,13 +106,13 @@ class Tribute:
         self._health = health
         self.comfort = comfort
         self._encumbrance = encumbrance
-        self.coords = [0, 0] if coords is None else coords
+        self.location = location
         self.equipment = []
         self.conditions = []
 
     def __str__(self) -> str:
         string = f"{self.name} ({self.hunger}/{self.thirst}/{self.health}/{self.comfort}/{self.encumbrance}, {self.fighting_score})"
-        string += f", {self.coords}\n"
+        string += f", {self.location}\n"
 
         # Traits
         string += " - Traits:\n"
@@ -288,10 +292,23 @@ class Tribute:
                 penalty = self.encumbrance - 10
             else:
                 penalty = self.encumbrance - 5
-            
+
             fighting_score -= penalty
 
         return fighting_score
+
+    def move_to(self, new_location: Location) -> None:
+        """Move the tribute to a new location."""
+        new_location.add_tribute(self)
+
+    def move_randomly(self, distance: int) -> None:
+        """Move the tribute randomly within the specified distance."""
+        if self.location is None:
+            return
+
+        neighbours = self.location.get_neighbours(distance)
+        new_location = random.choice(neighbours)
+        self.move_to(new_location)
 
     def progress_time(self) -> bool:
         """
@@ -316,16 +333,8 @@ class Tribute:
 
         self.update_conditions()
 
-        # randomly move to new coords; encumbered tributes move slower
-        move_chance = 0.25 if self.is_encumbered() else 0.5
-        if random.random() < move_chance:
-            for i in range(2):
-                # limit of 2 assumes 5x5 grid
-                if self.coords[i] == 2:
-                    self.coords[i] += random.randint(-1, 0)
-                elif self.coords[i] == -2:
-                    self.coords[i] += random.randint(0, 1)
-                else:
-                    self.coords[i] += random.randint(-1, 1)
+        # randomly move to new location; encumbered tributes move slower
+        move_distance = 1 if self.is_encumbered() else 2
+        self.move_randomly(move_distance)
 
         return self.is_alive

@@ -1,5 +1,6 @@
 import random
 
+from arena import Arena
 from equipment import Equipment
 from events import (
     EventAlly,
@@ -23,8 +24,10 @@ class GameMaker:
     tributes: list[Tribute]
     events: list[type[EventBase]]
     equipment: dict[Equipment, int]
+    arena: Arena
 
-    def __init__(self, tributes: list[Tribute]):
+    def __init__(self, arena: Arena, tributes: list[Tribute]):
+        self.arena = arena
         self.tributes = tributes
         self.equipment = {
             # Non-exhaustible equipment
@@ -73,21 +76,14 @@ class GameMaker:
             print(tribute)
 
     def execute_events(self):
-        # Group tributes by location
-        location_groups = {}
-        for tribute in self.living_tributes:
-            coords_key = tuple(tribute.coords)
-            if coords_key not in location_groups:
-                location_groups[coords_key] = []
-            location_groups[coords_key].append(tribute)
-
-        for location, tributes_at_location in location_groups.items():
+        # execute events for each location in the arena
+        for location in self.arena.locations:
             print("~~~~~~~~~~~~~~~")
             print(f"Location {location}:")
             print(
-                f"{len(tributes_at_location)} "
-                f"tribute{'s' if len(tributes_at_location) != 1 else ''} present:"
-                f" {', '.join([tribute.name for tribute in tributes_at_location])}"
+                f"{len(location.tributes)} "
+                f"tribute{'s' if len(location.tributes) != 1 else ''} present:"
+                f" {', '.join([tribute.name for tribute in location.tributes])}"
             )
 
             # We have two types of events:
@@ -104,11 +100,11 @@ class GameMaker:
                 ]
                 location_event = random.choice(location_events)
                 # execute the event
-                affected_tributes = location_event(self, tributes_at_location).execute()
+                affected_tributes = location_event(self, location.tributes).execute()
 
             else:
                 # No location event, so we do individual events for each tribute
-                remaining_tributes = tributes_at_location.copy()
+                remaining_tributes = location.tributes.copy()
                 while len(remaining_tributes) > 0:
                     # select a random event
                     valid_events = [
