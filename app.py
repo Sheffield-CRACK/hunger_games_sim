@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from shiny import App, render, ui, Inputs, Outputs, Session
 from shiny import reactive
@@ -15,13 +16,71 @@ ARENA_THEMES = [
 ]
 
 app_ui = ui.page_fluid(
-    ui.row(
-        ui.column(6, ui.h2("Hunger Games Simulator")),
-        ui.column(6, ui.tags.div(
-            ui.output_ui("theme_button"),
-            style="text-align: right;"
-        )),
-        style="align-items: center;"
+    ui.tags.style(
+        "@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@600;700;800&display=swap');"
+        "body { background: #fff8df; color: #6b4f00; font-family: 'Oxanium', sans-serif; }"
+        "body, body p, body span, body div { color: #6b4f00; }"
+        ".card, .nav-tabs, .nav-pills { border-color: #d4af37 !important; }"
+        ".nav-pills .nav-link { color: #2f2100; font-weight: 700; }"
+        ".nav-pills .nav-link.active { background: #d4af37 !important; color: #211500 !important; }"
+        "h4, label, strong { color: #6b4f00; }"
+        "button, .btn { background-color: #e2bd43 !important; border-color: #c99a16 !important; color: #4a3500 !important; font-weight: 700; }"
+        "button:hover, .btn:hover { background-color: #f0c84b !important; }"
+        "#save_tributes, #random_arena_theme { "
+        "background-color: #f0c84b !important; border-color: #d4af37 !important; }"
+        "#save_tributes:hover, #random_arena_theme:hover { "
+        "background-color: #f8d978 !important; }"
+        "hr { border-top-color: #d4af37; opacity: 0.8; }"
+        "[data-bs-theme='dark'] body { background: #211b0b; color: #ffe9a3; }"
+        "[data-bs-theme='dark'] body * { color: #ffe9a3 !important; }"
+        "[data-bs-theme='dark'] .app-title { color: gold !important; }"
+        "[data-bs-theme='dark'] .app-subtitle { color: white !important; }"
+        "[data-bs-theme='dark'] button, [data-bs-theme='dark'] .btn { "
+        "background-color: #4a3500 !important; border-color: #d4af37 !important; "
+        "--bs-btn-color: #ffe9a3 !important; "
+        "--bs-btn-hover-color: #ffe9a3 !important; "
+        "color: #ffe9a3 !important; "
+        "-webkit-text-fill-color: #ffe9a3 !important; }"
+        "[data-bs-theme='dark'] #save_tributes, "
+        "[data-bs-theme='dark'] #random_arena_theme { "
+        "background-color: #d4af37 !important; }"
+        "[data-bs-theme='dark'] #save_tributes:hover, "
+        "[data-bs-theme='dark'] #random_arena_theme:hover { "
+        "background-color: #f0c84b !important; }"
+    ),
+    ui.div(
+        ui.h2(
+            "The Hunger Games Simulator",
+            class_="app-title",
+            style=(
+                "position: absolute; top: 42%; left: 20px; width: 700px; "
+                "transform: translateY(-50%); margin: 0; color: gold; "
+                "font-size: 2.5rem; font-family: 'Oxanium', 'Arial Narrow', sans-serif; "
+                "font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; "
+                "text-align: center; white-space: nowrap; "
+                "text-shadow: 2px 2px 5px black;"
+            ),
+        ),
+        ui.p(
+            "- may the odds be ever in your favour -",
+            class_="app-subtitle",
+            style=(
+                "position: absolute; top: 62%; left: 20px; width: 700px; "
+                "transform: translateY(-50%); margin: 6px 0 0; color: white; "
+                "font-size: 1.1rem; font-family: 'Oxanium', 'Arial Narrow', sans-serif; "
+                "font-weight: 400; letter-spacing: 0.04em; "
+                "text-align: center; text-shadow: 2px 2px 4px black;"
+            ),
+        ),
+        ui.output_ui("theme_button"),
+        style=(
+            "position: relative; width: 100vw; margin-left: calc(50% - 50vw); "
+            "height: 220px; "
+            "background-image: url('hunger_games_header.jpg'); "
+            "background-size: cover; background-position: center; "
+            "display: flex; justify-content: flex-end; "
+            "align-items: flex-start; padding: 15px;"
+        ),
     ),
     ui.navset_card_pill(
         ui.nav_panel(
@@ -777,7 +836,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         radios = ui.input_radio_buttons("arena_theme_mode", "", ["Random", "Manual"], selected=mode)
         parts = [
-            ui.h4("Arena Theme"),
+            ui.tags.div(ui.h4("Arena Theme"), style="margin-top: 24px;"),
             ui.tags.div(radios, style="margin-top:10px;"),
             ui.tags.br(),
         ]
@@ -840,14 +899,19 @@ def server(input: Inputs, output: Outputs, session: Session):
         ui.update_dark_mode(next_mode)
         ui.notification_show(f"Switched to {next_mode} mode.", type="default", duration=2)
 
-app = App(app_ui, server)
+app = App(
+    app_ui,
+    server,
+    static_assets=Path(__file__).parent / "www",
+    debug=True,
+)
 
 if __name__ == "__main__":
     # Run with: python app.py
     try:
         from shiny import run_app
         # change host/port if needed (port may be in use)
-        run_app(app, host="127.0.0.1", port=8000, debug=True)
+        run_app(app, host="127.0.0.1", port=8000)
     except Exception as e:
         import traceback, sys
         print("Failed to start Shiny server:", e, file=sys.stderr)

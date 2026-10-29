@@ -3,15 +3,11 @@
     "name": "a",
     "district": 1,
     "traits": [
-      "Healer",
       "Career"
     ],
     "alliances": [
-      "b",
-      "c",
-      "e",
-      "i",
-      "l"
+      "h",
+      "k"
     ],
     "rank": 2
   },
@@ -19,42 +15,46 @@
     "name": "b",
     "district": 1,
     "traits": [
-      "Healer",
-      "Career"
+      "Career",
+      "Strong",
+      "Ranged Fighter",
+      "Intelligent",
+      "Tracker"
     ],
     "alliances": [
-      "f",
-      "h"
+      "a"
     ],
-    "rank": 7
+    "rank": 8
   },
   {
     "name": "c",
     "district": 2,
     "traits": [
-      "Healer",
-      "Career"
+      "Career",
+      "Sneaky",
+      "Intelligent",
+      "Popular",
+      "Coward"
     ],
     "alliances": [
-      "a",
-      "f",
-      "j",
-      "k"
+      "e",
+      "f"
     ],
-    "rank": 10
+    "rank": 9
   },
   {
     "name": "d",
     "district": 2,
     "traits": [
-      "Healer",
-      "Career"
+      "Career",
+      "Hunter",
+      "Ranged Fighter",
+      "Healer"
     ],
     "alliances": [
-      "j",
-      "l"
+      "c"
     ],
-    "rank": 8
+    "rank": 12
   },
   {
     "name": "e",
@@ -63,9 +63,12 @@
       "Healer"
     ],
     "alliances": [
-      "a",
-      "f",
-      "j"
+      "b",
+      "h",
+      "i",
+      "j",
+      "k",
+      "l"
     ],
     "rank": 5
   },
@@ -73,93 +76,103 @@
     "name": "f",
     "district": 3,
     "traits": [
-      "Healer"
+      "Intelligent",
+      "Popular"
     ],
     "alliances": [
+      "a",
       "b",
-      "h"
+      "d",
+      "i",
+      "k"
     ],
-    "rank": 9
+    "rank": 3
   },
   {
     "name": "g",
     "district": 4,
     "traits": [
-      "Healer",
       "Career"
     ],
     "alliances": [
+      "a",
       "e",
-      "k"
+      "f",
+      "h"
     ],
-    "rank": 8
+    "rank": 6
   },
   {
     "name": "h",
     "district": 4,
     "traits": [
-      "Healer",
-      "Career"
+      "Career",
+      "Strategic"
     ],
     "alliances": [
-      "b",
       "c",
-      "f",
-      "k"
+      "d",
+      "k",
+      "l"
     ],
-    "rank": 1
+    "rank": 4
   },
   {
     "name": "i",
     "district": 5,
     "traits": [
-      "Healer"
-    ],
-    "alliances": [
-      "e"
-    ],
-    "rank": 10
-  },
-  {
-    "name": "j",
-    "district": 5,
-    "traits": [
-      "Healer"
-    ],
-    "alliances": [
-      "b",
-      "c",
-      "d",
-      "g",
-      "i"
-    ],
-    "rank": 9
-  },
-  {
-    "name": "k",
-    "district": 6,
-    "traits": [
-      "Healer"
-    ],
-    "alliances": [
-      "d"
-    ],
-    "rank": 5
-  },
-  {
-    "name": "l",
-    "district": 6,
-    "traits": [
-      "Healer"
+      "Popular",
+      "Healer",
+      "Coward"
     ],
     "alliances": [
       "a",
       "b",
       "c",
-      "e",
-      "g",
-      "k"
+      "j"
     ],
-    "rank": 4
+    "rank": 9
+  },
+  {
+    "name": "j",
+    "district": 5,
+    "traits": [
+      "Ranged Fighter",
+      "Popular",
+      "Coward"
+    ],
+    "alliances": [
+      "c",
+      "l"
+    ],
+    "rank": 7
+  },
+  {
+    "name": "k",
+    "district": 6,
+    "traits": [
+      "Sneaky",
+      "Ranged Fighter",
+      "Healer"
+    ],
+    "alliances": [
+      "c",
+      "e"
+    ],
+    "rank": 1
+  },
+  {
+    "name": "l",
+    "district": 6,
+    "traits": [
+      "Strong",
+      "Healer",
+      "Tracker"
+    ],
+    "alliances": [
+      "a",
+      "b"
+    ],
+    "rank": 6
   }
 ]
