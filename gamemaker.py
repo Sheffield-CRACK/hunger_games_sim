@@ -31,7 +31,8 @@ class GameMaker:
 
     def __init__(self, tributes: list[Tribute]):
         self.tributes = tributes
-        # Mapping of coordinates -> list of Trap objects
+        # Mapping of coordinates -> list of
+        # Trap objects
         # Initialize as an empty dict so callers can use dict methods like setdefault
         self.traps = {}
         self.equipment = {
@@ -198,7 +199,7 @@ class GameMaker:
                 if not stays_alive:
                     number_alive -= 1
 
-            self.print_tributes()
+            #self.print_tributes()
 
             # execute events after movement on day 2+
             self.execute_events()
@@ -229,6 +230,7 @@ class GameMaker:
         # Allow automated runs to skip the interactive prompt by setting HG_AUTORUN=1
         if os.getenv("HG_AUTORUN") != "1":
             input("Continue? :")
+            print(f"\n~~~~~~~~~~~~~~~~~~~~")
         else:
             print("Auto-continue (HG_AUTORUN=1)")
 
