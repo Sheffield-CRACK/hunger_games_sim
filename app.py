@@ -72,6 +72,15 @@ app_ui = ui.page_fluid(
                 "text-align: center; text-shadow: 2px 2px 4px black;"
             ),
         ),
+        ui.img(
+            src="hutchy.jpg",
+            style=(
+                "position: absolute; top: 50%; left: 370px; width: 700px; "
+                "height: 220px; transform: translate(-50%, -50%); "
+                "object-fit: contain; "
+                "opacity: 0.15;"
+            ),
+        ),
         ui.output_ui("theme_button"),
         style=(
             "position: relative; width: 100vw; margin-left: calc(50% - 50vw); "
