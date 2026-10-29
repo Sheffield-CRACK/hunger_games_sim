@@ -556,7 +556,9 @@ class EventMakeTrap(EventBase):
         if random.random() < success_chance:
             print(f"{tribute.name} successfully made a trap!")
             self.gamemaker.traps.setdefault(trap_coords, []).append(new_trap)
-
+            # record on the tribute that they own a trap at these coords
+            tribute.trap = trap_coords
+            
         else:
             print(f"{tribute.name} failed to make a trap.")
 
@@ -577,25 +579,59 @@ class EventTriggerTrap(EventBase):
 
         traps = self.gamemaker.traps[coords]
 
-        # ignore tributes own traps
-        valid_traps = [trap for trap in traps if trap.owner != tribute and trap.owner.is_alive]
+        #ignore tributes & allies own traps
+        valid_traps = [trap for trap in traps if trap.owner != tribute and (not tribute.allies or trap.owner not in tribute.allies) and trap.owner.is_alive]
 
         if len(valid_traps) == 0:
             return []
-
-        # chance to trigger trap
-        if random.random() < 0.5:
+            
+        #chance to trigger trap
+        if random.random() < 0.4:
             triggered_trap = random.choice(valid_traps)
             print(f"{tribute.name} triggered a trap set by {triggered_trap.owner.name}!")
             tribute.adjust_health(-triggered_trap.damage)
 
             # remove trap after it has been triggered
             traps.remove(triggered_trap)
+            # clear ownership on the owner tribute if it pointed to these coords
+            try:
+                if getattr(triggered_trap.owner, 'trap', None) == coords:
+                    triggered_trap.owner.trap = None
+            except Exception:
+                pass
 
             # remove coordinates from gamemaker.traps if no traps remain at this location
             if len(traps) == 0:
                 del self.gamemaker.traps[coords]
 
+        elif "Intelligent" in tribute.trait and random.random() < 0.4:
+            print(f"{tribute.name} noticed a trap and avoided it!")
+            triggered_trap = random.choice(valid_traps)
+            if random.random() < 0.5:
+                print(f"{tribute.name} disarmed the trap!")
+
+                #remove trap after it has been triggered
+                traps.remove(triggered_trap)
+
+                #remove coordinates from gamemaker.traps if no traps remain at this location
+                if len(traps) == 0:
+                    del self.gamemaker.traps[coords]
+                    # clear owner's trap record if needed
+                    try:
+                        if getattr(triggered_trap.owner, 'trap', None) == coords:
+                            triggered_trap.owner.trap = None
+                    except Exception:
+                        pass
+            elif "Intelligent" in tribute.trait and random.random() < 0.5:
+                print(f"{tribute.name} is trying to rework the trap to work in their favour.")
+                if random.random() < 0.5:
+                    print(f"They were successful!")
+                    triggered_trap.owner = tribute
+                    # update trap ownership marker
+                    tribute.trap = coords
+                else:
+                    print(f"They were unsuccessful :(")
+                    tribute.health -= 1
         else:
             print(f"{tribute.name} notices something suspicious and avoids a trap.")
 

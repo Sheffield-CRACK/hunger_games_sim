@@ -23,6 +23,21 @@ TRIBUTE_TRAITS = [
 
 
 class Tribute:
+    name: str
+    district: int
+    rank: int
+    trait: list[str]
+    enemies: list[Tribute]
+    allies: list[Tribute]
+    hunger: float
+    thirst: float
+    _health: float
+    comfort: float
+    encumbrance: float
+    coords: list[int]
+    conditions: list[str]
+    trap: tuple[int, int] | None
+
     def __init__(
         self,
         name: str,
@@ -36,6 +51,7 @@ class Tribute:
         comfort: int = 0,
         encumbrance: int = 0,
         coords: list[int] | None = None,
+        trap: tuple[int, int] | None = None,
     ):
         """
         Create a new Tribute
@@ -62,6 +78,8 @@ class Tribute:
             The tribute's initial encumbrance level.
         coords : list[int], optional
             The tribute's position.
+        trap : tuple[int,int] | None, default: None
+            If the tribute owns a trap, the (x, y) coordinates of that trap; otherwise None.
         """
         self.name = name
         self.district = district
@@ -99,6 +117,8 @@ class Tribute:
         self.coords = arena.start_location.copy() if coords is None else coords
         self.equipment: list[Equipment] = []
         self.conditions = []
+        # If this tribute owns a trap, store its coordinates; otherwise None
+        self.trap = trap
 
     def __str__(self) -> str:
         string = f"{self.name} ({self.hunger}/{self.thirst}/{self.health}/{self.comfort}/{self.encumbrance}, {self.fighting_score})"
@@ -124,6 +144,16 @@ class Tribute:
                 equipment_string += f"{equipment}, "
             equipment_string = equipment_string[:-2]  # remove trailing comma
             string += f"   - {equipment_string}\n"
+
+        # Traps
+        string += " - Traps:\n"
+        if isinstance(self.trap, (tuple, list)):
+            string += f"   - Yes at {list(self.trap)}\n"
+        elif self.trap:
+            # defensive: if trap is a truthy non-iterable, print its repr
+            string += f"   - Yes ({self.trap})\n"
+        else:
+            string += "   - None\n"
 
         # Allies and enemies
         string += " - Allies:\n"

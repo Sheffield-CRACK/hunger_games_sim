@@ -1,4 +1,5 @@
 import random
+import os
 import numpy as np
 
 from equipment import Equipment
@@ -28,6 +29,10 @@ class GameMaker:
 
     def __init__(self, tributes: list[Tribute], arena: Arena):
         self.tributes = tributes
+        # Mapping of coordinates -> list of
+        # Trap objects
+        # Initialize as an empty dict so callers can use dict methods like setdefault
+        self.traps = {}
         self.arena = arena
         self.equipment = {
             # Non-exhaustible equipment
@@ -49,6 +54,7 @@ class GameMaker:
             Equipment(name="Rations", hunger_bonus=2, charges=2, weight=1): 3,
             Equipment(name="Soup", hunger_bonus=2, thirst_bonus=2, charges=1, weight=1): 3,
             Equipment(name="Adrenaline", health_bonus=-1, fighting_bonus=1, weight=0): 2,
+            Equipment(name="Trap materials", charges=1, weight=1): 10,
         }
         self.events = [
             EventFight,
@@ -95,6 +101,40 @@ class GameMaker:
                 f"tribute{'s' if len(tributes_at_location) != 1 else ''} present:"
                 f" {', '.join([tribute.name for tribute in tributes_at_location])}"
             )
+            remaining_tributes = tributes_at_location.copy()
+            while len(remaining_tributes) > 0:
+                # select a random event that has enough participants remaining
+                #valid_events = [
+                  #  event
+                  #  for event in self.events
+                 #   if len(remaining_tributes) >= event.num_participants
+                #]
+                valid_events = []
+
+                for event in self.events:
+                    if len(remaining_tributes) < event.num_participants:
+                        continue
+                    
+                    #only allow EventTriggerTrap if there is a trap at the location
+                    if event is EventTriggerTrap:
+                        location = tuple(remaining_tributes[0].coords)
+
+                        # require a non-empty trap list at this location
+                        if location not in self.traps or len(self.traps[location]) == 0:
+                            continue
+
+                    # append the event once (avoid duplicates)
+                    valid_events.append(event)
+
+                # randomly select a valid event type
+                event = random.choice(valid_events)
+
+                # select tributes for this event
+                if event.num_participants == -1:
+                    # all remaining tributes participate
+                    selected_tributes = remaining_tributes.copy()
+                else:
+                    selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
             # We have two types of events:
             #   - Location events, that affect all tributes at this location
@@ -167,6 +207,7 @@ class GameMaker:
             if tribute.is_dead:
                 continue
 
+            #self.print_tributes()
             stays_alive = tribute.progress_time()
             if not stays_alive:
                 number_alive -= 1
@@ -199,6 +240,12 @@ class GameMaker:
 
         # Wait for user to continue
         print("~~~~~~~~~~~~~~~")
+        # Allow automated runs to skip the interactive prompt by setting HG_AUTORUN=1
+        if os.getenv("HG_AUTORUN") != "1":
+            input("Continue? :")
+            print(f"\n~~~~~~~~~~~~~~~~~~~~")
+        else:
+            print("Auto-continue (HG_AUTORUN=1)")
         while "I SAID (y/n)":
             reply = str(input("Continue? (y/n): ")).lower().strip()
             if len(reply) == 0:
