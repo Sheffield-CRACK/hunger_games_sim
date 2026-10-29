@@ -16,6 +16,7 @@ from events import (
     EventGetEquipment,
     EventMutts,
     EventSponsorGift,
+    EventTriggerTrap,
     EventUseEquipment,
 )
 from tribute import Tribute
@@ -103,20 +104,14 @@ class GameMaker:
             )
             remaining_tributes = tributes_at_location.copy()
             while len(remaining_tributes) > 0:
-                # select a random event that has enough participants remaining
-                #valid_events = [
-                  #  event
-                  #  for event in self.events
-                 #   if len(remaining_tributes) >= event.num_participants
-                #]
                 valid_events = []
 
                 for event in self.events:
                     if len(remaining_tributes) < event.num_participants:
                         continue
-                    
+
                     #only allow EventTriggerTrap if there is a trap at the location
-                    if event is EventTriggerTrap:
+                    if isinstance(event, EventTriggerTrap):
                         location = tuple(remaining_tributes[0].coords)
 
                         # require a non-empty trap list at this location
@@ -136,43 +131,43 @@ class GameMaker:
                 else:
                     selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
 
-            # We have two types of events:
-            #   - Location events, that affect all tributes at this location
-            #  - Individual events, that affect a subset of tributes at this location
-            # We roll to see if a location event happens.
-            # If not, everyone has individual events happen to them (or multiple tributes)
-            if random.random() < 0.2:
-                # a random location event happens
-                location_event = random.choice(self.location_events)
-                # execute the event
-                affected_tributes = location_event(self, tributes_at_location, self.arena, location).execute()
-
-            else:
-                # No location event, so we do individual events for each tribute
-                remaining_tributes = tributes_at_location.copy()
-                while len(remaining_tributes) > 0:
-                    # select a random event
-                    valid_events = [event for event in self.events if event.num_participants == -1]
-                    valid_events = [
-                        event for event in self.events if len(remaining_tributes) >= event.num_participants
-                    ]
-
-                    # randomly select a valid event type
-                    event = random.choice(valid_events)
-
-                    # select tributes for this event
-                    if event.num_participants == -1:
-                        # all remaining tributes participate
-                        selected_tributes = remaining_tributes.copy()
-                    else:
-                        selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
-
+                # We have two types of events:
+                #   - Location events, that affect all tributes at this location
+                #  - Individual events, that affect a subset of tributes at this location
+                # We roll to see if a location event happens.
+                # If not, everyone has individual events happen to them (or multiple tributes)
+                if random.random() < 0.2:
+                    # a random location event happens
+                    location_event = random.choice(self.location_events)
                     # execute the event
-                    affected_tributes = event(self, selected_tributes, self.arena).execute()
+                    affected_tributes = location_event(self, tributes_at_location, self.arena, location).execute()
 
-                    # remove selected tributes from remaining tributes
-                    for tribute in affected_tributes:
-                        remaining_tributes.remove(tribute)
+                else:
+                    # No location event, so we do individual events for each tribute
+                    remaining_tributes = tributes_at_location.copy()
+                    while len(remaining_tributes) > 0:
+                        # select a random event
+                        valid_events = [event for event in self.events if event.num_participants == -1]
+                        valid_events = [
+                            event for event in self.events if len(remaining_tributes) >= event.num_participants
+                        ]
+
+                        # randomly select a valid event type
+                        event = random.choice(valid_events)
+
+                        # select tributes for this event
+                        if event.num_participants == -1:
+                            # all remaining tributes participate
+                            selected_tributes = remaining_tributes.copy()
+                        else:
+                            selected_tributes = random.sample(remaining_tributes, k=event.num_participants)
+
+                        # execute the event
+                        affected_tributes = event(self, selected_tributes, self.arena).execute()
+
+                        # remove selected tributes from remaining tributes
+                        for tribute in affected_tributes:
+                            remaining_tributes.remove(tribute)
 
         print("~~~~~~~~~~~~~~~")
 
@@ -240,16 +235,10 @@ class GameMaker:
 
         # Wait for user to continue
         print("~~~~~~~~~~~~~~~")
-        # Allow automated runs to skip the interactive prompt by setting HG_AUTORUN=1
-        if os.getenv("HG_AUTORUN") != "1":
-            input("Continue? :")
-            print(f"\n~~~~~~~~~~~~~~~~~~~~")
-        else:
-            print("Auto-continue (HG_AUTORUN=1)")
         while "I SAID (y/n)":
-            reply = str(input("Continue? (y/n): ")).lower().strip()
+            reply = str(input("Continue? (Y/n): ")).lower().strip()
             if len(reply) == 0:
-                continue
+                return True
 
             if reply[0] == "y":
                 return True
