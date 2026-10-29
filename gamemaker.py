@@ -118,11 +118,11 @@ class GameMaker:
                     if event is EventTriggerTrap:
                         location = tuple(remaining_tributes[0].coords)
 
-                        if location not in self.traps:
+                        # require a non-empty trap list at this location
+                        if location not in self.traps or len(self.traps[location]) == 0:
                             continue
-                        else:
-                            valid_events.append(event)
 
+                    # append the event once (avoid duplicates)
                     valid_events.append(event)
 
                 # randomly select a valid event type
