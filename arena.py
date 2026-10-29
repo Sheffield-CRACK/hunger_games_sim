@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import TYPE_CHECKING, Any, Literal
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 from perlin_noise import generate_fractal_noise_2d
-from typing import Literal, Any, TYPE_CHECKING
+from utils import TerminalColour
 
 if TYPE_CHECKING:
     from tribute import Tribute
@@ -199,19 +201,21 @@ class Arena:
 
                 match self.terrain_type[i][j]:
                     case "grass":
-                        row += "# "
+                        row += TerminalColour.BRIGHT_GREEN + "#"
                     case "forest":
-                        row += "^ "
+                        row += TerminalColour.GREEN + "^"
                     case "rock":
-                        row += "o "
+                        row += TerminalColour.GREY + "o"
                     case "sand":
-                        row += ". "
+                        row += TerminalColour.YELLOW + "."
                     case "snow":
-                        row += "* "
+                        row += TerminalColour.BRIGHT_WHITE + "*"
                     case "water":
-                        row += "~ "
+                        row += TerminalColour.BLUE + "~"
                     case _:
-                        row += "? "
+                        row += "?"
+
+                row += TerminalColour.RESET + " "
 
             print(row)
 
