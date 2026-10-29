@@ -317,6 +317,17 @@ class Tribute:
 
         return fighting_score
 
+    def do_movement(self) -> None:
+        old_position = self.coords.copy()
+        for i in range(2):
+            if self.coords[i] == self.arena.world_size - 1:
+                self.coords[i] += random.randint(-1, 0)  # move away from right/bottom edge or stay put
+            elif self.coords[i] == 0:
+                self.coords[i] += random.randint(0, 1)  # move away from left/top edge or stay put
+            else:
+                self.coords[i] += random.randint(-1, 1)  # otherwise, move 1 square in any direction, or stay put
+        print(f"[{self.name}]: Moved from {old_position} to {self.coords}")
+
     def progress_time(self) -> bool:
         """
         This function deals with the effects of time progressing
@@ -341,14 +352,9 @@ class Tribute:
         self.update_conditions()
 
         # randomly move to new coords; encumbered tributes move slower
-        move_chance = 0.25 if self.is_encumbered() else 0.5
-        if random.random() < move_chance:
-            for i in range(2):
-                if self.coords[i] == self.arena.world_size - 1:
-                    self.coords[i] += random.randint(-1, 0)  # move away from right/bottom edge or stay put
-                elif self.coords[i] == 0:
-                    self.coords[i] += random.randint(0, 1)  # move away from left/top edge or stay put
-                else:
-                    self.coords[i] += random.randint(-1, 1)  # otherwise, move 1 square in any direction, or stay put
+        speed = 1 if self.is_encumbered() else 2
+        print(f"[{self.name}]: My speed is {speed}")
+        for i in range(speed):
+            self.do_movement()
 
         return self.is_alive
